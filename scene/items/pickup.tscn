@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/items/pickup.gd" id="1_pickup"]
+
+[sub_resource type="SphereShape3D" id="Shape_pickup"]
+radius = 0.6
+
+[node name="Pickup" type="Area3D"]
+collision_layer = 32
+collision_mask = 2
+monitorable = false
+script = ExtResource("1_pickup")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("Shape_pickup")
+
+[node name="Sprite3D" type="Sprite3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+pixel_size = 0.008
+double_sided = true
+shaded = false
+alpha_cut = 1

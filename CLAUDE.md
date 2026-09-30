@@ -28,6 +28,9 @@ Godot (installé par winget, raccourcis Bureau + menu Démarrer) :
 - Les tests sont des **scènes** (`tests/*.tscn`) et non des scripts `-s` : en mode `-s`, les autoloads
   (`EventBus`, `GameState`) ne sont pas déclarés et les scripts qui les utilisent ne compilent pas.
 - `--check-only` signale à tort `EventBus` introuvable pour la même raison : s'y fier seulement pour la syntaxe.
+- `load_main()` retire les ennemis du niveau (tests déterministes) ; `load_main(true)` les garde.
+- Écrire les gros fichiers générés (scènes, .tres) avec un script Python dans le dossier scratchpad :
+  les heredocs Bash contenant des apostrophes échouent dans cet environnement.
 
 ## Workflow par jalon
 
@@ -43,8 +46,8 @@ assets/blender/       .blend sources
 assets/textures/ (icons/ : icônes SVG)  assets/audio/
 scene/player/  scene/enemies/  scene/world/  scene/ui/  scene/components/
 scene/items/ (weapons/ : modèles d'armes)  scene/projectiles/
-scripts/player/ (+ states/)  scripts/enemies/  scripts/components/  scripts/items/
-scripts/ui/  scripts/autoload/
+scripts/player/ (+ states/)  scripts/enemies/ (+ states/)  scripts/components/  scripts/items/
+scripts/ui/  scripts/autoload/  scripts/world/ (scripts de niveau)
 resources/weapons/  resources/spells/  resources/items/  resources/loot_tables/  resources/stats/
 tests/                scènes de test automatiques (à exclure de l'export, jalon 9)
 ```
@@ -73,7 +76,7 @@ Les dossiers encore vides contiennent un `.gitkeep`.
 | Nom | Script | Rôle |
 |---|---|---|
 | `EventBus` | `scripts/autoload/event_bus.gd` | Signaux globaux : `damage_dealt(target, info)`, `enemy_died(enemy)`, `item_picked_up(item, quantity)`, `level_up(new_level)`, `player_died`, `lock_on_target_changed(target)` |
-| `GameState` | `scripts/autoload/game_state.gd` | `player_stats` (PlayerStats), `add_xp()`, `new_game()` ; catalogue `weapons` (tous les `.tres` de `resources/weapons/`), `equipped_weapon`, `equip_weapon()` / `equip_weapon_by_id()` ; données persistantes `data` (par sections) ; `save_game()` / `load_game()` / `has_save()` en JSON dans `user://savegame.json`. Signaux `stats_changed`, `equipment_changed`, `saving`, `loaded` |
+| `GameState` | `scripts/autoload/game_state.gd` | `player_stats` (PlayerStats), `add_xp()`, `new_game()` ; catalogue `weapons` (tous les `.tres` de `resources/weapons/`), `equipped_weapon`, `equip_weapon()` / `equip_weapon_by_id()` ; catalogue `items` (`resources/items/`), `inventory` (id → quantité), `rupees`, `add_item()`, `get_item_count()` ; données persistantes `data` (par sections) ; `save_game()` / `load_game()` / `has_save()` en JSON dans `user://savegame.json`. Signaux `stats_changed`, `equipment_changed`, `inventory_changed`, `saving`, `loaded` |
 
 **Sauvegarde :** `GameState.save_game()` émet `saving` → chaque système écrit sa section dans
 `GameState.data` (ex. le joueur : `data["player"] = {"hp": …}`), puis `player_stats` est ajouté et le
@@ -98,12 +101,15 @@ chaque système relit sa section. Tout nouveau système persistant (coffres, por
 | Corps du joueur (CharacterBody3D) | 2 | 1 + 3 (= 5) |
 | Hurtbox du joueur | 2 | — |
 | Hitbox d'arme du joueur | 4 | 3 |
-| Corps d'un ennemi / mannequin | 3 | 1 |
+| Corps d'un ennemi | 3 | 1 + 2 (= 3) |
+| Corps d'un mannequin | 3 | 1 |
 | Hurtbox d'un ennemi / mannequin | 3 | — |
-| Hitbox d'un ennemi (jalon 4) | 5 | 2 |
+| Hitbox d'attaque d'un ennemi | 5 | 2 |
+| Zone de détection d'un ennemi | — | 2 |
+| Objet ramassable (Pickup) | 6 | 2 |
 | Projectile du joueur (Area3D) | 8 | 1 (explose sur le décor) |
 | Hitbox du projectile du joueur | 8 | 3 |
-| SpringArm de la caméra, ligne de vue du lock-on | — | 1 |
+| SpringArm de la caméra, ligne de vue du lock-on, SightRay des ennemis | — | 1 |
 
 ## Actions d'entrée
 
@@ -140,6 +146,8 @@ Touches **physiques** (même position sur AZERTY et QWERTY).
 | HitStop | `scripts/components/hit_stop.gd` | fait (`HitStop.freeze(tree, durée)`, statique) |
 | Projectile | `scripts/components/projectile.gd` | fait (Area3D + Hitbox enfant, tête chercheuse) |
 | DamageNumber | `scripts/ui/damage_number.gd`, `scene/ui/damage_number.tscn` | fait (couleur par type, critiques) |
+| EnemyHealthBar | `scripts/ui/enemy_health_bar.gd`, `scene/ui/enemy_health_bar.tscn` | fait (SubViewport + Sprite3D billboard, barre fantôme) |
+| Pickup | `scripts/items/pickup.gd`, `scene/items/pickup.tscn` | fait (base ; aspiration + texte « +1 » au jalon 6) |
 
 - **StateMachine** : les états sont ses enfants ; le **nom du nœud** est l'identifiant
   (`transition_to(&"Run", {msg})`). `actor` = parent par défaut. `auto_process_physics = false` quand
@@ -188,6 +196,54 @@ mult_combo, critique)` → `DamageInfo.raw_amount` ; la Hurtbox finit avec
   la course et la marche épuisée (`player.get_walk_speed()`…), pas à la roulade.
 - Sauvegardé : stats (`to_dict()` / `from_dict()`) + vie et mana actuels du joueur.
 - Pour donner de l'XP : `GameState.add_xp(quantité)` (ennemis au jalon 4).
+
+## Objets, butin (jalon 4, complété au jalon 6)
+
+- `ItemData` (`scripts/items/item_data.gd`, fichiers `resources/items/*.tres`) : `id`, `display_name`,
+  `description`, `icon`, `type` (CONSOMMABLE, ARME, CLE, MATERIAU, MONNAIE), `stackable`, `max_quantity`,
+  `heal_amount`, `use_on_pickup` (cœur : consommé au ramassage), `value` (rubis), `weapon`.
+- Objets existants : `rupee` (1 rubis), `heart` (+10 PV au ramassage), `slime_jelly`, `goblin_fang`.
+- `LootTable` + `LootEntry` (`resources/loot_tables/*.tres`) : entrée = {item, weight, min/max_quantity,
+  chance}. `roll(rng)` : chaque entrée de `guaranteed` est testée avec sa chance ; puis `rolls` tirages
+  pondérés dans `entries`, chacun validé par sa chance. Les quantités d'un même objet sont cumulées.
+- `Pickup` : flotte, tourne, se ramasse au contact après 0,4 s. `pop_to(point)` le fait jaillir en arc.
+
+## Ennemis (jalon 4)
+
+```
+Enemy (CharacterBody3D, enemy.gd, groupes "enemies" + "lockable")   scene/enemies/enemy.tscn
+├─ CollisionShape3D
+├─ Model (tourne vers la direction)
+│  ├─ Visual (maillages, animé) → Telegraph (Label3D « ! » rouge)
+│  └─ AttackHitbox (Hitbox, calque 5)
+├─ Hurtbox, LockOnPoint, HealthBar (EnemyHealthBar)
+├─ HealthComponent (invincibility_after_hit = 0 : chaque coup du combo compte), HitFlash
+├─ NavigationAgent3D (path/target_desired_distance = 1,0 m — voir pièges)
+├─ DetectionArea (sphère, rayon = detection_range), SightRay (RayCast3D, calque world)
+├─ AnimationPlayer (idle, walk, attack, hurt, death, RESET ; mode physique)
+└─ StateMachine → Patrol, Chase, Attack, Return, Hurt, Dead
+```
+
+- `slime.tscn` et `goblin.tscn` sont des **scènes héritées** de `enemy.tscn` : elles ajoutent les
+  maillages, les formes de collision, l'animation et règlent les `@export` d'IA.
+- Stats : `EnemyStats` (`resources/stats/slime_stats.tres`, `goblin_stats.tres`) : `max_hp`, `force`,
+  `defense`, `speed`, `xp_reward`, `attack_damage`, `attack_knockback`, `resistances`.
+- Réglages d'IA sur la scène : `detection_range`, `view_half_angle`, `close_detection_range`,
+  `lose_sight_time`, `leash_distance`, `attack_range`, `attack_cooldown`, `wander_radius`,
+  `patrol_speed_factor`, `patrol_wait_time`, `hop_movement` (bonds), `lunge_speed` (bond d'attaque)…
+- **Repérage** (`can_see_player()`) : joueur dans la DetectionArea, vivant, dans le champ de vision
+  (sauf à moins de `close_detection_range`) et ligne de vue dégagée (SightRay).
+- **Patrol** : points `patrol_points` (Marker3D, en boucle, pause à chacun) ou errance aléatoire sur le
+  maillage autour du point d'apparition. **Chase** : navigation vers la dernière position connue ;
+  abandon → **Return** si hors de vue depuis `lose_sight_time` s ou trop loin de chez lui.
+  **Return** : retour au point d'apparition puis Patrol (reprend la poursuite s'il revoit le joueur
+  à mi-chemin). **Attack** : animation `attack` = télégraphie (« ! » + préparation, l'ennemi suit le
+  joueur du regard) → piste de méthode `_anim_commit_attack()` (bond éventuel) → piste
+  `AttackHitbox:active` pendant les frames actives → récupération → recharge. **Hurt** : annule
+  l'attaque, recul, puis Chase. **Dead** : collisions coupées, sorti des groupes, `GameState.add_xp()`,
+  `EventBus.enemy_died`, butin, disparition après `despawn_delay`.
+- Niveau : `scripts/world/level.gd` cuit la `NavigationRegion3D` au chargement (collisions statiques
+  enfants). Le décor à contourner doit donc être **sous NavigationRegion3D**.
 
 ## Joueur (`scene/player/player.tscn`)
 
@@ -249,6 +305,13 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Chance de critique portée par l'arme (`critical_chance`) ; le coup final du combo a un recul ×1,5.
 - Sort sans lock-on : le personnage se tourne dans l'axe de la caméra et tire droit devant ;
   avec lock-on, la boule vise la cible et la suit (tête chercheuse douce).
+- Ennemis : télégraphie lisible avant chaque attaque (« ! » rouge au-dessus de la tête + mouvement
+  de préparation : 0,6 s pour le Slime, 0,45 s pour le Gobelin), comme les ennemis de BotW.
+- Le Slime (lent, 20 PV, faible au feu ×1,5) se déplace par petits bonds et attaque en bondissant ;
+  le Gobelin (rapide, 35 PV, Défense 2) repère de plus loin, attaque plus souvent (massue).
+- Un ennemi touché riposte (Hurt → Chase) même s'il n'avait pas vu le joueur.
+- La barre de vie d'un ennemi n'apparaît qu'après le premier coup reçu ou pendant le lock-on.
+- Les rubis sont toujours lâchés (1-2 Slime, 2-4 Gobelin) ; cœur et matériau au hasard.
 - Couleurs des chiffres de dégâts : blanc physique, orange feu, bleu glace, jaune pâle foudre, violet
   magie ; critique = plus gros, jaune doré, suivi de « ! ».
 
@@ -260,10 +323,24 @@ Player (CharacterBody3D, player.gd, groupe "player")
   **jalon 5** en gardant les pistes `WeaponHitbox:active` et les pistes de méthode.
 - Modèles d'armes en primitives (`scene/items/weapons/*.tscn`) → `.glb` Blender au **jalon 5**.
 - `WeaponSocket` (Node3D) → `BoneAttachment3D` sur l'os de la main au **jalon 5**.
-- Mannequins d'entraînement (`scene/enemies/training_dummy.tscn`) : vie infinie, pour tester les armes
-  → de vrais ennemis arrivent au **jalon 4**.
+- Mannequins d'entraînement (`scene/enemies/training_dummy.tscn`) : vie infinie, pour tester les armes.
+- Slime et Gobelin en primitives, animés par transformations du nœud `Visual` → modèles et
+  animations Blender au **jalon 5** (garder les pistes `AttackHitbox:active`, `Telegraph:visible` et
+  `_anim_commit_attack`).
+- Maillage de navigation cuit au lancement → cuit dans l'éditeur avec le vrai niveau au **jalon 6**.
 - Pas encore de particules d'impact ni d'explosion de la boule d'énergie → **jalon 8**.
 - Niveau de test `scene/world/main.tscn` (sol, murs, plateformes) → île au **jalon 6**.
+
+## Pièges connus
+
+- **NavigationAgent3D** : le maillage est cuit environ 0,5 m au-dessus du sol ; avec
+  `path_desired_distance` ≤ 0,5 l'agent ne passe jamais au point suivant et reste immobile.
+  Garder 1,0 m (et `Enemy.navigate_to()` vise la cible en direct si le point suivant est à la verticale).
+- NavigationMesh : `cell_size`/`cell_height` = 0,25 (comme la carte) et `agent_height`, `agent_radius`,
+  `agent_max_climb` multiples de 0,25, sinon avertissement à la cuisson.
+- Dictionnaires typés (`Dictionary[StringName, X]`) : remplir avec `.assign()` depuis un dictionnaire
+  non typé.
+- Changer `monitoring`/`monitorable` pendant un rappel physique : utiliser `set_deferred()`.
 
 ## Jalons
 
@@ -273,7 +350,7 @@ Player (CharacterBody3D, player.gd, groupe "player")
 | 1 | Caméra orbitale, déplacements, machine à états, lock-on, coyote time / buffer | fait |
 | 2 | Statistiques, niveaux et XP | fait |
 | 3 | Armes, combos et magie | fait |
-| 4 | Ennemis et IA | à faire |
+| 4 | Ennemis et IA | fait |
 | 5 | Pipeline Blender → Godot | à faire |
 | 6 | Monde, objets et interactions | à faire |
 | 7 | HUD et interface | à faire |

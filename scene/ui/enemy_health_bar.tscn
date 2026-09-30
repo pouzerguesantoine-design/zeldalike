@@ -1,0 +1,72 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/enemy_health_bar.gd" id="1_bar"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_bar"]
+resource_local_to_scene = true
+viewport_path = NodePath("SubViewport")
+
+[sub_resource type="StyleBoxFlat" id="Style_background"]
+bg_color = Color(0.08, 0.04, 0.04, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="Style_ghost"]
+bg_color = Color(1, 0.9, 0.7, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Style_fill"]
+bg_color = Color(0.9, 0.16, 0.16, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxEmpty" id="Style_empty"]
+
+[node name="HealthBar" type="Sprite3D"]
+pixel_size = 0.007
+billboard = 1
+no_depth_test = true
+render_priority = 5
+texture = SubResource("ViewportTexture_bar")
+script = ExtResource("1_bar")
+
+[node name="SubViewport" type="SubViewport" parent="."]
+transparent_bg = true
+size = Vector2i(160, 22)
+render_target_update_mode = 4
+
+[node name="Ghost" type="ProgressBar" parent="SubViewport"]
+offset_right = 160.0
+offset_bottom = 22.0
+theme_override_styles/background = SubResource("Style_background")
+theme_override_styles/fill = SubResource("Style_ghost")
+value = 100.0
+show_percentage = false
+
+[node name="Bar" type="ProgressBar" parent="SubViewport/Ghost"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/background = SubResource("Style_empty")
+theme_override_styles/fill = SubResource("Style_fill")
+value = 100.0
+show_percentage = false

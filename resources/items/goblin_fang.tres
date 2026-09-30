@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/goblin_fang.svg" id="2_icon"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"goblin_fang"
+display_name = "Croc de gobelin"
+description = "Un croc pointu arraché à un gobelin."
+icon = ExtResource("2_icon")
+type = 3
+stackable = true
+max_quantity = 99
+heal_amount = 0
+use_on_pickup = false
+value = 5

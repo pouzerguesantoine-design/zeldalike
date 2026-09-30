@@ -43,9 +43,15 @@ func frames(count: int) -> void:
 		await get_tree().physics_frame
 
 
-## Instancie le niveau principal comme enfant du test et renvoie son joueur.
-func load_main() -> Node:
+## Instancie le niveau principal comme enfant du test et le renvoie.
+## Par défaut les ennemis sont retirés, pour que les tests restent déterministes.
+func load_main(keep_enemies: bool = false) -> Node:
 	var main: Node = load("res://scene/world/main.tscn").instantiate()
+	if not keep_enemies:
+		var enemies := main.get_node_or_null(^"Enemies")
+		if enemies:
+			main.remove_child(enemies)
+			enemies.free()
 	add_child(main)
 	return main
 

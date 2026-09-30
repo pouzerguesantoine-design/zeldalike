@@ -1,6 +1,6 @@
 extends Node
-## État persistant de la partie (autoload « GameState ») : stats du joueur, équipement
-## (et inventaire au jalon 6). Sauvegarde JSON dans user://.
+## État persistant de la partie (autoload « GameState ») : stats du joueur, équipement,
+## inventaire et rubis. Sauvegarde JSON dans user://.
 ##
 ## Sauvegarde : `saving` est émis juste avant l'écriture pour que chaque système range
 ## son état dans `data` ; `loaded` est émis après la lecture pour qu'il le relise.
@@ -13,6 +13,8 @@ signal loaded
 signal stats_changed
 ## L'arme équipée a changé.
 signal equipment_changed(weapon: WeaponData)
+## L'inventaire ou le nombre de rubis a changé.
+signal inventory_changed
 
 const SAVE_PATH := "user://savegame.json"
 const BASE_PLAYER_STATS: PlayerStats = preload("res://resources/stats/player_base_stats.tres")
@@ -20,6 +22,8 @@ const BASE_PLAYER_STATS: PlayerStats = preload("res://resources/stats/player_bas
 const WEAPONS_DIR := "res://resources/weapons/"
 ## Arme de départ (comme dans Zelda, on commence avec une arme modeste).
 const DEFAULT_WEAPON_ID := &"wooden_sword"
+## Tous les objets (.tres) de ce dossier sont chargés au démarrage.
+const ITEMS_DIR := "res://resources/items/"
 
 ## Raccourcis de test (builds de debug uniquement).
 const DEBUG_XP_AMOUNT := 50
@@ -36,10 +40,16 @@ var player_stats: PlayerStats
 ## Catalogue des armes, par identifiant.
 var weapons: Dictionary[StringName, WeaponData] = {}
 var equipped_weapon: WeaponData
+## Catalogue des objets, par identifiant.
+var items: Dictionary[StringName, ItemData] = {}
+## Inventaire : identifiant d'objet → quantité.
+var inventory: Dictionary[StringName, int] = {}
+var rupees: int = 0
 
 
 func _ready() -> void:
-	_load_weapon_catalog()
+	weapons.assign(_load_catalog(WEAPONS_DIR))
+	items.assign(_load_catalog(ITEMS_DIR))
 	new_game()
 
 
@@ -63,7 +73,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func new_game() -> void:
 	data = {}
 	player_stats = BASE_PLAYER_STATS.duplicate() as PlayerStats
+	inventory = {}
+	rupees = 0
 	stats_changed.emit()
+	inventory_changed.emit()
 	equip_weapon_by_id(DEFAULT_WEAPON_ID)
 
 
@@ -91,14 +104,37 @@ func equip_weapon_by_id(weapon_id: StringName) -> bool:
 	return true
 
 
-func _load_weapon_catalog() -> void:
-	# list_directory() fonctionne aussi dans le jeu exporté (noms de fichiers d'origine).
-	for file_name in ResourceLoader.list_directory(WEAPONS_DIR):
+## Charge toutes les ressources .tres d'un dossier, indexées par leur `id`.
+## list_directory() fonctionne aussi dans le jeu exporté (noms de fichiers d'origine).
+func _load_catalog(directory: String) -> Dictionary:
+	var catalog := {}
+	for file_name in ResourceLoader.list_directory(directory):
 		if not file_name.ends_with(".tres"):
 			continue
-		var weapon := load(WEAPONS_DIR + file_name) as WeaponData
-		if weapon:
-			weapons[weapon.id] = weapon
+		var resource := load(directory + file_name)
+		if resource and &"id" in resource:
+			catalog[resource.get(&"id")] = resource
+	return catalog
+
+
+# --- Inventaire ------------------------------------------------------------------
+
+## Ajoute un objet ramassé : les rubis vont au compteur, le reste dans l'inventaire
+## (plafonné à max_quantity). Émet EventBus.item_picked_up.
+func add_item(item: ItemData, quantity: int = 1) -> void:
+	if quantity <= 0:
+		return
+	if item.type == ItemData.ItemType.MONNAIE:
+		rupees += item.value * quantity
+	else:
+		var limit := item.max_quantity if item.stackable else 1
+		inventory[item.id] = mini(get_item_count(item.id) + quantity, limit)
+	inventory_changed.emit()
+	EventBus.item_picked_up.emit(item, quantity)
+
+
+func get_item_count(item_id: StringName) -> int:
+	return inventory.get(item_id, 0)
 
 
 # --- Sauvegarde ----------------------------------------------------------------
@@ -111,6 +147,8 @@ func save_game(path: String = SAVE_PATH) -> bool:
 	saving.emit()
 	data["player_stats"] = player_stats.to_dict()
 	data["equipment"] = {"weapon": String(equipped_weapon.id)}
+	data["inventory"] = inventory.duplicate()
+	data["rupees"] = rupees
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		push_error("Sauvegarde impossible (%s) : %s" % [path, error_string(FileAccess.get_open_error())])
@@ -132,6 +170,13 @@ func load_game(path: String = SAVE_PATH) -> bool:
 	var equipment: Dictionary = data.get("equipment", {})
 	if not equip_weapon_by_id(StringName(equipment.get("weapon", DEFAULT_WEAPON_ID))):
 		equip_weapon_by_id(DEFAULT_WEAPON_ID)
+	inventory = {}
+	var saved_inventory: Dictionary = data.get("inventory", {})
+	for item_id in saved_inventory:
+		if items.has(StringName(item_id)):
+			inventory[StringName(item_id)] = int(saved_inventory[item_id])
+	rupees = int(data.get("rupees", 0))
 	stats_changed.emit()
+	inventory_changed.emit()
 	loaded.emit()
 	return true

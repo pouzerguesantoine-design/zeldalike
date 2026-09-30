@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/test_jalon4.gd" id="1_test"]
+
+[node name="TestJalon4" type="Node"]
+script = ExtResource("1_test")
+timeout_seconds = 150.0
