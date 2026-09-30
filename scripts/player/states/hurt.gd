@@ -1,9 +1,6 @@
 extends PlayerState
-## Coup reçu : recul à l'opposé de la source, contrôle perdu un court instant.
-## L'invincibilité qui suit est gérée par le HealthComponent.
-
-## Inclinaison du corps vers l'arrière pendant le recul (radians).
-@export var tilt: float = 0.35
+## Coup reçu : recul à l'opposé de la source, contrôle perdu un court instant
+## (animation « hurt »). L'invincibilité qui suit est gérée par le HealthComponent.
 
 var _elapsed: float
 
@@ -18,7 +15,7 @@ func enter(msg: Dictionary) -> void:
 		if offset.length_squared() > 0.01:
 			away = offset.normalized()
 	player.velocity = away * player.hurt_knockback + Vector3.UP * 2.5
-	player.visual.basis = Basis(Vector3.RIGHT, tilt)
+	player.play_body_animation(&"hurt", true)
 
 
 func physics_update(delta: float) -> void:
@@ -27,7 +24,3 @@ func physics_update(delta: float) -> void:
 	player.move_horizontally(Vector3.ZERO, 0.0, delta)
 	if _elapsed >= player.hurt_duration:
 		transition_to(state_after_action())
-
-
-func exit() -> void:
-	player.visual.basis = Basis.IDENTITY

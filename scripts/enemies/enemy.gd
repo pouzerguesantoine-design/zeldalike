@@ -6,6 +6,8 @@ extends CharacterBody3D
 ## Patrol → Chase → Attack, Return (retour au point d'apparition), Hurt, Dead.
 
 const PICKUP_SCENE := preload("res://scene/items/pickup.tscn")
+## Durée du fondu entre idle et walk (secondes).
+const LOCOMOTION_BLEND := 0.15
 
 @export var stats: EnemyStats
 @export var loot_table: LootTable
@@ -72,7 +74,10 @@ var _rng := RandomNumberGenerator.new()
 @onready var nav_agent: NavigationAgent3D = $NavigationAgent3D
 @onready var detection_area: Area3D = $DetectionArea
 @onready var sight_ray: RayCast3D = $SightRay
+## Événements de gameplay de l'attaque (télégraphie, Hitbox, départ du coup).
 @onready var anim: AnimationPlayer = $AnimationPlayer
+## Animations du corps : AnimationPlayer du modèle Blender (idle, walk, attack, hurt, death).
+@onready var model_anim: AnimationPlayer = visual.find_child("AnimationPlayer", true, false) as AnimationPlayer
 @onready var state_machine: StateMachine = $StateMachine
 @onready var health_bar: EnemyHealthBar = $HealthBar
 
@@ -224,9 +229,21 @@ func random_wander_point() -> Vector3:
 	return point
 
 
+## Animation de locomotion en boucle (idle, walk) : fondu, sans relancer si déjà jouée.
 func play_animation(animation: StringName) -> void:
-	if anim.current_animation != animation and anim.has_animation(animation):
+	if model_anim and model_anim.current_animation != animation:
+		model_anim.play(animation, LOCOMOTION_BLEND)
+
+
+## Action (attack, hurt, death) relancée depuis le début, sur le modèle et, si elle
+## existe, sur l'AnimationPlayer gameplay (sinon celui-ci est simplement arrêté).
+func play_action(animation: StringName) -> void:
+	anim.stop()
+	if anim.has_animation(animation):
 		anim.play(animation)
+	if model_anim:
+		model_anim.stop()
+		model_anim.play(animation)
 
 
 # --- Combat --------------------------------------------------------------------

@@ -8,8 +8,7 @@ var _elapsed: float
 func enter(_msg: Dictionary) -> void:
 	_elapsed = 0.0
 	enemy.reset_attack()
-	enemy.anim.stop()
-	enemy.anim.play(&"hurt")
+	enemy.play_action(&"hurt")
 
 
 func physics_update(delta: float) -> void:

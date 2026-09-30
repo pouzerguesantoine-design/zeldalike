@@ -1,57 +1,13 @@
 [gd_scene format=3]
 
-[sub_resource type="StandardMaterial3D" id="Mat_blade"]
-albedo_color = Color(1.0, 0.42, 0.1, 1)
-emission_enabled = true
-emission = Color(1.0, 0.35, 0.05, 1)
-emission_energy_multiplier = 1.5
-
-[sub_resource type="StandardMaterial3D" id="Mat_guard"]
-albedo_color = Color(0.35, 0.1, 0.04, 1)
-
-[sub_resource type="StandardMaterial3D" id="Mat_grip"]
-albedo_color = Color(0.17, 0.1, 0.05, 1)
-
-[sub_resource type="BoxMesh" id="Mesh_blade"]
-material = SubResource("Mat_blade")
-size = Vector3(0.11, 0.04, 0.95)
-
-[sub_resource type="PrismMesh" id="Mesh_tip"]
-material = SubResource("Mat_blade")
-size = Vector3(0.11, 0.16, 0.04)
-
-[sub_resource type="BoxMesh" id="Mesh_guard"]
-material = SubResource("Mat_guard")
-size = Vector3(0.3, 0.06, 0.06)
-
-[sub_resource type="CylinderMesh" id="Mesh_grip"]
-material = SubResource("Mat_grip")
-top_radius = 0.025
-bottom_radius = 0.025
-height = 0.2
-radial_segments = 8
-rings = 1
+[ext_resource type="PackedScene" path="res://assets/models/fire_blade.glb" id="1_model"]
 
 [node name="FireBlade" type="Node3D"]
 
-[node name="Blade" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.595)
-mesh = SubResource("Mesh_blade")
-
-[node name="Tip" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -1.150)
-mesh = SubResource("Mesh_tip")
-
-[node name="Guard" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.1)
-mesh = SubResource("Mesh_guard")
-
-[node name="Grip" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
-mesh = SubResource("Mesh_grip")
+[node name="Model" parent="." instance=ExtResource("1_model")]
 
 [node name="Glow" type="OmniLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.595)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.6)
 light_color = Color(1.0, 0.5, 0.15, 1)
 light_energy = 1.2
 omni_range = 2.5

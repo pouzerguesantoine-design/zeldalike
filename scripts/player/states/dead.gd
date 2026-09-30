@@ -1,14 +1,12 @@
 extends PlayerState
-## Mort : le personnage s'effondre, plus aucune commande.
+## Mort : le personnage s'effondre (animation « death »), plus aucune commande.
 ## La réapparition (écran de mort) arrive au jalon 7.
 
 
 func enter(_msg: Dictionary) -> void:
 	player.lock_on.release()
+	player.play_body_animation(&"death", true)
 	EventBus.player_died.emit()
-	var tween := create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tween.tween_property(player.visual, "rotation:x", -PI / 2.0, 0.6)
-	tween.parallel().tween_property(player.visual, "position:y", 0.45, 0.6)
 
 
 func physics_update(delta: float) -> void:

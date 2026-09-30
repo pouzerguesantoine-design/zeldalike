@@ -41,15 +41,18 @@ Godot (installé par winget, raccourcis Bureau + menu Démarrer) :
 ## Arborescence
 
 ```
-assets/models/        .glb exportés depuis Blender
-assets/blender/       .blend sources
+assets/models/        .glb exportés depuis Blender (réglages d'import dans les .glb.import)
+assets/blender/       .blend sources (dossier ignoré par Godot : .gdignore)
 assets/textures/ (icons/ : icônes SVG)  assets/audio/
 scene/player/  scene/enemies/  scene/world/  scene/ui/  scene/components/
 scene/items/ (weapons/ : modèles d'armes)  scene/projectiles/
 scripts/player/ (+ states/)  scripts/enemies/ (+ states/)  scripts/components/  scripts/items/
 scripts/ui/  scripts/autoload/  scripts/world/ (scripts de niveau)
 resources/weapons/  resources/spells/  resources/items/  resources/loot_tables/  resources/stats/
+resources/animation/  AnimationTree du joueur (généré par tools/godot/)
 tests/                scènes de test automatiques (à exclure de l'export, jalon 9)
+tools/blender/        scripts Python qui construisent les modèles dans Blender (ignoré par Godot)
+tools/godot/          scripts Godot de génération (AnimationTree)
 ```
 
 Les dossiers encore vides contiennent un `.gitkeep`.
@@ -197,6 +200,52 @@ mult_combo, critique)` → `DamageInfo.raw_amount` ; la Hurtbox finit avec
 - Sauvegardé : stats (`to_dict()` / `from_dict()`) + vie et mana actuels du joueur.
 - Pour donner de l'XP : `GameState.add_xp(quantité)` (ennemis au jalon 4).
 
+## Pipeline Blender → Godot (jalon 5)
+
+Tous les modèles sont **générés par des scripts** (reproductibles, modifiables) :
+
+| Script (`tools/blender/`) | Produit (`assets/blender/*.blend` + `assets/models/*.glb`) |
+|---|---|
+| `lowpoly.py` | bibliothèque commune (MeshBuilder, squelette, animations NLA, export) |
+| `build_player.py` | `player` : héros façon Link, 15 os, WeaponSocket, 12 animations |
+| `build_enemies.py` | `slime` (1 os) et `goblin` (15 os, massue), 5 animations chacun |
+| `build_weapons.py` | `wooden_sword`, `knight_sword`, `fire_blade` (un .glb chacun, `weapons.blend`) |
+| `build_props.py` | `tree_round`, `tree_pine`, `rock_a`, `rock_b`, `grass`, `house`, `chest`, `door`, `fence`, `bridge` (`props.blend`) |
+
+Relancer un script depuis le MCP Blender (`execute_blender_code`) :
+```python
+path = r"C:\Users\psamf\Documents\zeldalike\tools\blender\build_player.py"
+exec(compile(open(path, encoding="utf-8").read(), path, "exec"), {"__name__": "__main__", "__file__": path})
+```
+puis `godot --headless --path . --import`. Le script vide la scène Blender courante.
+
+**Règles** : 1 unité = 1 m ; origine aux pieds ; le personnage regarde **+Y dans Blender = -Z dans
+Godot** ; pièces rigides pondérées à 100 % sur un os ; maillages construits directement à l'origine
+(transformations nulles, équivalent Ctrl+A) ; une action par animation rangée dans **sa propre piste
+NLA** au nom exact ; export `.glb` en mode `NLA_TRACKS` ; couleurs unies par matériau, ombrage plat.
+Rotations dans les scripts : axes monde (X : un membre pendant part vers l'avant pour un angle positif).
+
+- **Arme en main** : Empty `WeaponSocket` parenté à l'os `hand.R` (axe +Y de l'Empty = lame) →
+  Godot l'importe sous un `BoneAttachment3D` (`hand_R`). Armes : poignée à l'origine, lame vers +Y.
+- **Collisions** : objets simplifiés suffixés `-convcolonly` (convexe) ou `-colonly` (concave) →
+  StaticBody3D invisibles à l'import. Leurs noms doivent **se terminer** par le suffixe : les objets
+  sont préfixés par le nom du décor pour éviter les « .001 » de Blender.
+- **Boucles** : `idle`, `walk`, `run`, `fall` (et `idle`/`walk` des ennemis) réglées en boucle dans
+  `_subresources` des `.glb.import` ; `animation/import_rest_as_RESET=true`.
+- **Joueur** : l'`AnimationTree` (`resources/animation/player_animation_tree.tres`, généré par
+  `tools/godot/build_player_animation_tree.gd`) anime le corps : `locomotion` (BlendSpace1D idle 0 /
+  walk 5 / run 9 m/s), `jump`, `fall`, `roll`, `roll_back` (roll à l'envers), `attack_1..3`
+  (BlendTree + TimeScale `parameters/attack_N/time_scale/scale` = vitesse de l'arme), `cast`, `hurt`,
+  `death`. Les états appellent `player.play_body_animation(état, relancer)` / `animate_locomotion()`.
+  L'`AnimationPlayer` du joueur (gameplay) ne garde que les événements : `WeaponHitbox:active`,
+  `_anim_open_combo_window`, `_anim_release_spell`, orbe. Les deux démarrent ensemble à la même vitesse ;
+  **les durées Blender et gameplay doivent rester égales** (attack_1/2 0,43 s, attack_3 0,63 s, cast 0,53 s).
+- **Ennemis** : `EnemyModel` (glb) sous `Model/Visual` ; `Enemy.play_animation()` (boucles, fondu)
+  et `Enemy.play_action()` (attack/hurt/death sur le modèle + l'AnimationPlayer gameplay s'il a l'animation).
+  L'AnimationPlayer gameplay ne garde que `attack` (télégraphie, Hitbox, `_anim_commit_attack`).
+- **Décors** : `.glb` instanciés directement (pas encore de script) sous `NavigationRegion3D/Props` du
+  niveau de test ; le coffre et la porte deviendront interactifs au jalon 6 (scènes héritées + script).
+
 ## Objets, butin (jalon 4, complété au jalon 6)
 
 - `ItemData` (`scripts/items/item_data.gd`, fichiers `resources/items/*.tres`) : `id`, `display_name`,
@@ -214,18 +263,18 @@ mult_combo, critique)` → `DamageInfo.raw_amount` ; la Hurtbox finit avec
 Enemy (CharacterBody3D, enemy.gd, groupes "enemies" + "lockable")   scene/enemies/enemy.tscn
 ├─ CollisionShape3D
 ├─ Model (tourne vers la direction)
-│  ├─ Visual (maillages, animé) → Telegraph (Label3D « ! » rouge)
+│  ├─ Visual → EnemyModel (glb Blender), Telegraph (Label3D « ! » rouge)
 │  └─ AttackHitbox (Hitbox, calque 5)
 ├─ Hurtbox, LockOnPoint, HealthBar (EnemyHealthBar)
 ├─ HealthComponent (invincibility_after_hit = 0 : chaque coup du combo compte), HitFlash
 ├─ NavigationAgent3D (path/target_desired_distance = 1,0 m — voir pièges)
 ├─ DetectionArea (sphère, rayon = detection_range), SightRay (RayCast3D, calque world)
-├─ AnimationPlayer (idle, walk, attack, hurt, death, RESET ; mode physique)
+├─ AnimationPlayer (gameplay : RESET, attack ; mode physique) — le corps est animé par le glb
 └─ StateMachine → Patrol, Chase, Attack, Return, Hurt, Dead
 ```
 
-- `slime.tscn` et `goblin.tscn` sont des **scènes héritées** de `enemy.tscn` : elles ajoutent les
-  maillages, les formes de collision, l'animation et règlent les `@export` d'IA.
+- `slime.tscn` et `goblin.tscn` sont des **scènes héritées** de `enemy.tscn` : elles ajoutent le
+  modèle Blender, les formes de collision, l'animation gameplay et règlent les `@export` d'IA.
 - Stats : `EnemyStats` (`resources/stats/slime_stats.tres`, `goblin_stats.tres`) : `max_hp`, `force`,
   `defense`, `speed`, `xp_reward`, `attack_damage`, `attack_knockback`, `resistances`.
 - Réglages d'IA sur la scène : `detection_range`, `view_half_angle`, `close_detection_range`,
@@ -251,14 +300,14 @@ Enemy (CharacterBody3D, enemy.gd, groupes "enemies" + "lockable")   scene/enemie
 Player (CharacterBody3D, player.gd, groupe "player")
 ├─ CollisionShape3D (capsule)
 ├─ Model (Node3D, tourne vers la direction)
-│  ├─ Visual (Node3D au centre du corps : roulade, chute, recul)
-│  │  ├─ Body, Nose (repère de l'avant)
-│  │  ├─ WeaponSocket (arme en main ; BoneAttachment3D au jalon 5)
-│  │  └─ MagicOrb (orbe du sort, animée par « cast »)
+│  ├─ Visual
+│  │  ├─ PlayerModel (player.glb : PlayerRig/Skeleton3D/hand_R/WeaponSocket, AnimationPlayer)
+│  │  └─ MagicOrb (orbe du sort dans la main gauche, animée par « cast »)
 │  └─ WeaponHitbox (Hitbox, profondeur = portée de l'arme)
 ├─ Hurtbox (défense = stat Défense)
 ├─ HealthComponent, StaminaComponent, ManaComponent
-├─ AnimationPlayer (RESET, attack_1, attack_2, attack_3, cast ; mode physique)
+├─ AnimationPlayer (gameplay : RESET, attack_1..3, cast ; mode physique)
+├─ AnimationTree (corps : player_animation_tree.tres sur PlayerModel/AnimationPlayer ; mode physique)
 ├─ StateMachine → Idle, Walk, Run, Jump, Fall, Dodge, Attack, Magic, Hurt, Dead
 ├─ LockOnComponent (marqueur : scene/player/lock_on_marker.tscn)
 └─ CameraPivot (top_level, player_camera.gd) → SpringArm3D → Camera3D
@@ -312,21 +361,21 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Un ennemi touché riposte (Hurt → Chase) même s'il n'avait pas vu le joueur.
 - La barre de vie d'un ennemi n'apparaît qu'après le premier coup reçu ou pendant le lock-on.
 - Les rubis sont toujours lâchés (1-2 Slime, 2-4 Gobelin) ; cœur et matériau au hasard.
+- Style visuel : héros façon Link (tunique et bonnet verts, oreilles pointues), proportions
+  légèrement « chibi » (grosse tête), low-poly à facettes, couleurs saturées.
+- Roulade arrière (sans direction) = animation `roll` jouée à l'envers (état `roll_back`).
+- L'épée est tenue pointe vers l'avant au repos ; pendant les tailles, la main pivote pour
+  prolonger la lame dans l'axe du bras.
 - Couleurs des chiffres de dégâts : blanc physique, orange feu, bleu glace, jaune pâle foudre, violet
   magie ; critique = plus gros, jaune doré, suivi de « ! ».
 
 ## Éléments provisoires (à remplacer)
 
-- Capsule bleue = joueur ; roulade/recul/mort = rotations du nœud `Visual` → vrais modèles et
-  animations au **jalon 5**.
-- Animations d'attaque et de sort : rotations du nœud `WeaponSocket` → à refaire sur le squelette au
-  **jalon 5** en gardant les pistes `WeaponHitbox:active` et les pistes de méthode.
-- Modèles d'armes en primitives (`scene/items/weapons/*.tscn`) → `.glb` Blender au **jalon 5**.
-- `WeaponSocket` (Node3D) → `BoneAttachment3D` sur l'os de la main au **jalon 5**.
+- Animations faites à la main dans les scripts (poses clés) : correctes mais simples ; on peut les
+  retoucher dans les .blend (les scripts écrasent les .blend : retoucher le script, ou ne plus le relancer).
+- Les boucles importées durent une image de plus que prévu (ex. idle 1,03 s) : léger temps mort
+  en fin de boucle, à corriger si gênant (exporter sans la dernière image dupliquée).
 - Mannequins d'entraînement (`scene/enemies/training_dummy.tscn`) : vie infinie, pour tester les armes.
-- Slime et Gobelin en primitives, animés par transformations du nœud `Visual` → modèles et
-  animations Blender au **jalon 5** (garder les pistes `AttackHitbox:active`, `Telegraph:visible` et
-  `_anim_commit_attack`).
 - Maillage de navigation cuit au lancement → cuit dans l'éditeur avec le vrai niveau au **jalon 6**.
 - Pas encore de particules d'impact ni d'explosion de la boule d'énergie → **jalon 8**.
 - Niveau de test `scene/world/main.tscn` (sol, murs, plateformes) → île au **jalon 6**.
@@ -341,6 +390,10 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Dictionnaires typés (`Dictionary[StringName, X]`) : remplir avec `.assign()` depuis un dictionnaire
   non typé.
 - Changer `monitoring`/`monitorable` pendant un rappel physique : utiliser `set_deferred()`.
+- Blender 5.2 : un enfant d'os est placé relativement à la **queue** de l'os ; `lowpoly.attach_to_bone()`
+  le gère. Lire `matrix_world` d'un objet juste créé renvoie l'identité (pas encore évalué).
+- Scripts Godot lancés avec `-s` depuis `tools/` : fonctionnent malgré le `.gdignore`, mais sans
+  autoloads (ne pas y utiliser GameState/EventBus).
 
 ## Jalons
 
@@ -351,7 +404,7 @@ Player (CharacterBody3D, player.gd, groupe "player")
 | 2 | Statistiques, niveaux et XP | fait |
 | 3 | Armes, combos et magie | fait |
 | 4 | Ennemis et IA | fait |
-| 5 | Pipeline Blender → Godot | à faire |
+| 5 | Pipeline Blender → Godot | fait |
 | 6 | Monde, objets et interactions | à faire |
 | 7 | HUD et interface | à faire |
 | 8 | Finitions | à faire |

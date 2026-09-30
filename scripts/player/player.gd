@@ -6,8 +6,6 @@ extends CharacterBody3D
 ## sont prises par les états de la StateMachine (scripts/player/states/).
 
 const LEVEL_UP_EFFECT := preload("res://scene/player/level_up_effect.tscn")
-## Pose de repos de l'arme (pointe vers le bas, devant), identique à l'animation RESET.
-const WEAPON_REST_ROTATION := Vector3(-1.0, 0.0, 0.0)
 
 @export_group("Déplacement")
 ## Vitesses de base, multipliées par la stat Vitesse (voir get_walk_speed()).
@@ -67,14 +65,19 @@ var _jumped_since_on_floor: bool = false
 var _weapon_model: Node3D
 
 @onready var model: Node3D = $Model
-## Pivot visuel au centre du corps : on le fait tourner pour la roulade, la chute…
-@onready var visual: Node3D = $Model/Visual
-## Emplacement de l'arme en main (deviendra un BoneAttachment3D au jalon 5).
-@onready var weapon_socket: Node3D = $Model/Visual/WeaponSocket
+## Modèle Blender (assets/models/player.glb) : squelette + animations du corps.
+@onready var body_model: Node3D = $Model/Visual/PlayerModel
+## Emplacement de l'arme : Empty « WeaponSocket » du .blend, importé par Godot sous un
+## BoneAttachment3D qui suit l'os de la main droite (hand.R).
+@onready var weapon_socket: Node3D = body_model.find_child("WeaponSocket") as Node3D
 @onready var weapon_hitbox: Hitbox = $Model/WeaponHitbox
 @onready var magic_visual: Node3D = $Model/Visual/MagicOrb
 @onready var hurtbox: Hurtbox = $Hurtbox
+## Événements de combat (frames actives, fenêtre d'enchaînement, sort).
 @onready var anim: AnimationPlayer = $AnimationPlayer
+## Animations du corps : machine à états (resources/animation/player_animation_tree.tres).
+@onready var anim_tree: AnimationTree = $AnimationTree
+@onready var body_playback: AnimationNodeStateMachinePlayback = anim_tree.get(&"parameters/playback")
 @onready var camera_pivot: PlayerCamera = $CameraPivot
 @onready var state_machine: StateMachine = $StateMachine
 @onready var health: HealthComponent = $HealthComponent
@@ -155,6 +158,28 @@ func get_run_speed() -> float:
 
 func get_exhausted_speed() -> float:
 	return exhausted_speed * GameState.player_stats.get_move_speed_multiplier()
+
+
+## Joue un état de l'AnimationTree du corps : fondu depuis l'état courant, ou relance
+## immédiate (`restart`) pour une action qui doit repartir du début (attaque, coup reçu…).
+func play_body_animation(state: StringName, restart: bool = false) -> void:
+	if restart:
+		body_playback.start(state, true)
+	elif body_playback.get_current_node() != state:
+		body_playback.travel(state)
+
+
+## Locomotion : BlendSpace1D idle / walk / run piloté par la vitesse au sol
+## (ramenée aux vitesses de base, pour que la stat Vitesse ne décale pas le mélange).
+func animate_locomotion() -> void:
+	play_body_animation(&"locomotion")
+	var speed := Vector2(velocity.x, velocity.z).length() / GameState.player_stats.get_move_speed_multiplier()
+	anim_tree.set(&"parameters/locomotion/blend_position", speed)
+
+
+## Vitesse d'une animation d'attaque du corps (= vitesse d'attaque de l'arme).
+func set_attack_animation_speed(state: StringName, speed: float) -> void:
+	anim_tree.set(StringName("parameters/%s/time_scale/scale" % state), speed)
 
 
 ## Vitesse horizontale à conserver en l'air (garde l'élan d'un sprint).
@@ -268,7 +293,6 @@ func reset_combat_pose() -> void:
 	anim.stop()
 	weapon_hitbox.active = false
 	combo_window_open = false
-	weapon_socket.rotation = WEAPON_REST_ROTATION
 	magic_visual.visible = false
 	magic_visual.scale = Vector3.ONE
 

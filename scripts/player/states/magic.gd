@@ -9,6 +9,7 @@ func enter(_msg: Dictionary) -> void:
 		player.face_direction_instant(player.camera_pivot.get_flat_forward())
 	player.anim.stop()
 	player.anim.play(&"cast")
+	player.play_body_animation(&"cast", true)
 
 
 func exit() -> void:

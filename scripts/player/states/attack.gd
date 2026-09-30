@@ -63,5 +63,10 @@ func _start_hit() -> void:
 	if not player.lock_on.has_target() and not direction.is_zero_approx():
 		player.face_direction_instant(direction)
 	player.prepare_weapon_hit(_combo_index)
+	# Deux lecteurs démarrés ensemble à la même vitesse : l'AnimationPlayer « gameplay »
+	# (frames actives, fenêtre d'enchaînement) et l'AnimationTree du corps.
+	var speed := player.get_weapon().attack_speed
 	player.anim.stop()
-	player.anim.play(ANIMATIONS[_combo_index], -1, player.get_weapon().attack_speed)
+	player.anim.play(ANIMATIONS[_combo_index], -1, speed)
+	player.set_attack_animation_speed(ANIMATIONS[_combo_index], speed)
+	player.play_body_animation(ANIMATIONS[_combo_index], true)

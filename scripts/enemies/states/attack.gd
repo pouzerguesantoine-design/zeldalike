@@ -9,8 +9,7 @@ extends EnemyState
 
 func enter(_msg: Dictionary) -> void:
 	enemy.prepare_attack()
-	enemy.anim.stop()
-	enemy.anim.play(&"attack")
+	enemy.play_action(&"attack")
 
 
 func exit() -> void:

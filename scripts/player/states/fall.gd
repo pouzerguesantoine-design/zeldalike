@@ -7,6 +7,7 @@ var _air_speed: float
 
 func enter(msg: Dictionary) -> void:
 	_air_speed = msg.get("air_speed", player.get_air_speed())
+	player.play_body_animation(&"fall")
 
 
 func physics_update(delta: float) -> void:

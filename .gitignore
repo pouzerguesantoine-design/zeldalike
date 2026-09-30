@@ -19,3 +19,6 @@ mono_crash.*.json
 Thumbs.db
 desktop.ini
 .vscode/
+
+# Blender (sauvegardes automatiques)
+*.blend1
