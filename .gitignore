@@ -22,3 +22,7 @@ desktop.ini
 
 # Blender (sauvegardes automatiques)
 *.blend1
+
+# Python
+__pycache__/
+*.pyc
