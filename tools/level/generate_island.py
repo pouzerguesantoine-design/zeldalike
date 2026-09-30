@@ -71,7 +71,8 @@ SLIME = res("PackedScene", "res://scene/enemies/slime.tscn")
 GOBLIN = res("PackedScene", "res://scene/enemies/goblin.tscn")
 CHEST = res("PackedScene", "res://scene/world/chest.tscn")
 DOOR = res("PackedScene", "res://scene/world/door.tscn")
-PROMPT = res("PackedScene", "res://scene/ui/interaction_prompt.tscn")
+GAME_UI = res("PackedScene", "res://scene/ui/game_ui.tscn")
+SAVE_POINT = res("PackedScene", "res://scene/world/save_point.tscn")
 KEY = res("Resource", "res://resources/items/small_key.tres")
 
 sub("""[sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_island"]
@@ -110,7 +111,7 @@ metallic = 0.2
 roughness = 0.08""")
 sub("""[sub_resource type="PlaneMesh" id="PlaneMesh_sea"]
 material = SubResource("Material_sea")
-size = Vector2(400, 400)""")
+size = Vector2(3000, 3000)""")
 sub("""[sub_resource type="StandardMaterial3D" id="Material_river"]
 transparency = 1
 albedo_color = Color(0.25, 0.62, 0.9, 0.9)
@@ -248,6 +249,8 @@ for name, x, z, yaw, table in [("ChestVillage", 4, 16, 180, "chest_village"),
 transform = {tr(x, 0, z, yaw)}
 chest_id = &"{table.replace('chest_', '')}"
 loot_table = {loot}""")
+node(f"""[node name="SavePoint" parent="{NAV}" instance={SAVE_POINT}]
+transform = {tr(-4, 0, 15)}""")
 node(f"""[node name="DungeonDoor" parent="{NAV}" instance={DOOR}]
 transform = {tr(22, 0, -21)}
 door_id = &"dungeon"
@@ -281,7 +284,7 @@ transform = {tr(8, 0, -30)}""")
 # ------------------------------------------------------------------ joueur et interface
 node(f"""[node name="Player" parent="." instance={PLAYER}]
 transform = {tr(0, 0.1, 32)}""")
-node(f"""[node name="InteractionPrompt" parent="." instance={PROMPT}]""")
+node(f"""[node name="GameUI" parent="." instance={GAME_UI}]""")
 
 text = "[gd_scene format=3]\n\n" + "\n".join(ext) + "\n\n" + "\n\n".join(subs) + "\n\n" + "\n\n".join(nodes) + "\n"
 with open("scene/world/island.tscn", "w", encoding="utf-8", newline="\n") as f:

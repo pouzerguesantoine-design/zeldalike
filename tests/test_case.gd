@@ -74,13 +74,15 @@ func send_action(action: StringName) -> void:
 
 
 ## Enregistre une capture si un chemin est passé après « -- » (et si le rendu est actif).
-func save_screenshot_if_requested() -> void:
+## `suffix` permet plusieurs captures : « capture.png » → « capture_suffixe.png ».
+func save_screenshot_if_requested(suffix: String = "") -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.is_empty() or DisplayServer.get_name() == "headless":
 		return
 	await get_tree().process_frame
-	get_viewport().get_texture().get_image().save_png(args[0])
-	print("  capture : ", args[0])
+	var path := args[0] if suffix.is_empty() else args[0].get_basename() + "_" + suffix + ".png"
+	get_viewport().get_texture().get_image().save_png(path)
+	print("  capture : ", path)
 
 
 ## Supprime un fichier user:// créé par un test.

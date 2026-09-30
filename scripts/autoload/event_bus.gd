@@ -21,5 +21,8 @@ signal player_died
 signal lock_on_target_changed(target: Node3D)
 ## L'objet activable devant le joueur a changé (null = aucun).
 signal interaction_target_changed(target: Interactable)
+## Un menu (inventaire, pause, écran de mort) s'ouvre ou se ferme : la caméra libère
+## ou recapture la souris.
+signal game_menu_toggled(is_open: bool)
 
 @warning_ignore_restore("unused_signal")

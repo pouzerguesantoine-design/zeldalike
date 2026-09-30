@@ -30,6 +30,9 @@ Godot (installé par winget, raccourcis Bureau + menu Démarrer) :
   (`EventBus`, `GameState`) ne sont pas déclarés et les scripts qui les utilisent ne compilent pas.
 - `--check-only` signale à tort `EventBus` introuvable pour la même raison : s'y fier seulement pour la syntaxe.
 - `load_main()` retire les ennemis du niveau (tests déterministes) ; `load_main(true)` les garde.
+- Les tests n'écrivent **jamais** dans la vraie sauvegarde : chemins `user://test_save_jX.json`
+  (et `GameState.save_path` remplacé puis rétabli dans le test du jalon 7).
+- `save_screenshot_if_requested("suffixe")` : plusieurs captures dans un même test.
 - Écrire les gros fichiers générés (scènes, .tres) avec un script Python dans le dossier scratchpad :
   les heredocs Bash contenant des apostrophes échouent dans cet environnement.
 
@@ -80,8 +83,8 @@ Les dossiers encore vides contiennent un `.gitkeep`.
 
 | Nom | Script | Rôle |
 |---|---|---|
-| `EventBus` | `scripts/autoload/event_bus.gd` | Signaux globaux : `damage_dealt(target, info)`, `enemy_died(enemy)`, `item_picked_up(item, quantity)`, `level_up(new_level)`, `player_died`, `lock_on_target_changed(target)`, `interaction_target_changed(target)` |
-| `GameState` | `scripts/autoload/game_state.gd` | drapeaux du monde `world_flags` (`set_flag()`, `has_flag()` : « chest:<id> », « door:<id> »), `remove_item()` ; `player_stats` (PlayerStats), `add_xp()`, `new_game()` ; catalogue `weapons` (tous les `.tres` de `resources/weapons/`), `equipped_weapon`, `equip_weapon()` / `equip_weapon_by_id()` ; catalogue `items` (`resources/items/`), `inventory` (id → quantité), `rupees`, `add_item()`, `get_item_count()` ; données persistantes `data` (par sections) ; `save_game()` / `load_game()` / `has_save()` en JSON dans `user://savegame.json`. Signaux `stats_changed`, `equipment_changed`, `inventory_changed`, `saving`, `loaded` |
+| `EventBus` | `scripts/autoload/event_bus.gd` | Signaux globaux : `game_menu_toggled(is_open)`, `damage_dealt(target, info)`, `enemy_died(enemy)`, `item_picked_up(item, quantity)`, `level_up(new_level)`, `player_died`, `lock_on_target_changed(target)`, `interaction_target_changed(target)` |
+| `GameState` | `scripts/autoload/game_state.gd` | navigation entre écrans (`start_new_game()`, `continue_game()`, `prepare_respawn()`, `go_to_title()`, `change_scene()`), `save_path`, `restore_player_on_spawn` ; drapeaux du monde `world_flags` (`set_flag()`, `has_flag()` : « chest:<id> », « door:<id> »), `remove_item()` ; `player_stats` (PlayerStats), `add_xp()`, `new_game()` ; catalogue `weapons` (tous les `.tres` de `resources/weapons/`), `equipped_weapon`, `equip_weapon()` / `equip_weapon_by_id()` ; catalogue `items` (`resources/items/`), `inventory` (id → quantité), `rupees`, `add_item()`, `get_item_count()` ; données persistantes `data` (par sections) ; `save_game()` / `load_game()` / `has_save()` en JSON dans `user://savegame.json`. Signaux `stats_changed`, `equipment_changed`, `inventory_changed`, `saving`, `loaded` |
 
 **Sauvegarde :** `GameState.save_game()` émet `saving` → chaque système écrit sa section dans
 `GameState.data` (ex. le joueur : `data["player"] = {"hp": …}`), puis `player_stats` est ajouté et le
@@ -134,8 +137,9 @@ Touches **physiques** (même position sur AZERTY et QWERTY).
 | lock_on | Tab ou clic molette |
 | target_next / target_prev | molette bas / haut (changer de cible en lock-on) |
 | interact | E |
-| inventory | I |
-| pause | Échap (pour l'instant : libère la souris ; un clic la recapture) |
+| inventory | I (ouvre / ferme l'inventaire ; dans l'inventaire, Tab change d'onglet) |
+| pause | Échap (menu pause ; ferme l'inventaire s'il est ouvert) |
+| ui_* (par défaut) | flèches + Entrée : navigation clavier dans tous les menus |
 | debug_add_xp / debug_save / debug_load | F1 (+50 XP) / F2 (sauvegarder) / F3 (charger) — **builds de debug uniquement** (`OS.is_debug_build()`), gérés par GameState |
 | debug_weapon_1 / 2 / 3 | touches 1 / 2 / 3 de la rangée du haut (& é " en AZERTY) : Épée en bois / Épée de chevalier / Lame de feu — debug uniquement |
 
@@ -412,6 +416,13 @@ Player (CharacterBody3D, player.gd, groupe "player")
   l'équipera depuis le menu au jalon 7 (en attendant : touches de test 1/2/3).
 - La petite clé est consommée par la porte ; interagir n'est possible qu'au sol, hors attaque.
 - Coffre à la Zelda : le couvercle s'ouvre, puis le butin jaillit et est aspiré vers le joueur.
+- HUD en **cœurs** (plus lisible et plus « Zelda » qu'une barre) remplis par quarts comme BotW ;
+  la jauge d'endurance disparaît quand elle est pleine, comme la roue de BotW.
+- Lock-on : bandes noires en haut et en bas de l'écran, comme le Z-targeting d'Ocarina of Time.
+- Nouvelle partie : l'épée en bois est dans l'inventaire (`STARTING_ITEMS`) et équipée.
+- Une potion n'est pas bue si la vie est pleine ; une clé ne peut pas être jetée, ni l'arme équipée.
+  Un objet jeté tombe devant le joueur et n'est pas aspiré (il faut marcher dessus).
+- La statue de sauvegarde soigne complètement (comme les statues de déesse).
 - Couleurs des chiffres de dégâts : blanc physique, orange feu, bleu glace, jaune pâle foudre, violet
   magie ; critique = plus gros, jaune doré, suivi de « ! ».
 
@@ -428,6 +439,31 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Pas encore de particules d'impact ni d'explosion de la boule d'énergie → **jalon 8**.
 - Niveau de test `scene/world/main.tscn` (sol, murs, plateformes) → île au **jalon 6**.
 
+## Interface (jalon 7)
+
+- **Scène de démarrage : `scene/ui/title_screen.tscn`** (l'île tourne en fond dans un SubViewport,
+  sans joueur ni interface) : Nouvelle partie / Continuer (si sauvegarde) / Quitter.
+- `scene/ui/game_ui.tscn` (Node `GameUI`, process ALWAYS) est instancié dans chaque niveau et
+  regroupe : `HUD`, `InteractionPrompt`, `InventoryMenu`, `PauseMenu`, `DeathScreen`. Il gère
+  Échap et I. Thème commun : `resources/ui/theme.tres` (panneaux sombres, bordures dorées, focus doré).
+- **HUD** (`scripts/ui/hud.gd`) : cœurs `TextureProgressBar` (10 PV par cœur, remplissage horaire →
+  quarts de cœur, clignotement rouge aux dégâts, dernier cœur qui bat sous 10 PV) ; endurance avec
+  barre fantôme retardée (rouge à l'épuisement, s'efface quand pleine) ; mana ; « Niv. N » + barre
+  d'XP ; rubis qui défilent ; emplacements arme / sort ; lock-on = bandes noires + « ◆ Nom ».
+- **MenuScreen** (`scripts/ui/menu_screen.gd`) : base des menus → `open()` / `close()` mettent le
+  jeu en pause (`get_tree().paused`), émettent `EventBus.game_menu_toggled` (la caméra libère ou
+  recapture la souris ; le clic de fermeture n'attaque pas) et donnent le focus clavier.
+- **Inventaire** : onglet Objets (grille triée arme > consommable > clé > matériau, fiche, boutons
+  Utiliser / Équiper / Jeter) ; onglet Équipement (arme équipée, armes possédées, comparaison
+  ▲ vert / ▼ rouge : dégâts = base × mult, vitesse, portée, critique, endurance/coup, type ; stats).
+- **Pause** : Reprendre / Sauvegarder / Charger / Quitter vers le titre.
+- **Point de sauvegarde** (`scene/world/save_point.tscn`, statue de cristal, place du village) :
+  E sauvegarde et rend vie, endurance et mana.
+- **Mort** : écran après 1,6 s → « Réapparaître » = `GameState.continue_game()` : recharge la
+  sauvegarde, recharge la scène, le joueur reprend position / vie / mana sauvegardées
+  (`restore_player_on_spawn`) ; sans sauvegarde → nouvelle partie. Les ennemis réapparaissent.
+- Sauvegarde du joueur : `data["player"] = {hp, mana, position, yaw}`.
+
 ## Pièges connus
 
 - **NavigationAgent3D** : le maillage est cuit environ 0,5 m au-dessus du sol ; avec
@@ -438,6 +474,10 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Dictionnaires typés (`Dictionary[StringName, X]`) : remplir avec `.assign()` depuis un dictionnaire
   non typé.
 - Changer `monitoring`/`monitorable` pendant un rappel physique : utiliser `set_deferred()`.
+- `ProgressBar` arrondit à `step` (1 par défaut) : mettre `step = 0.0` pour les jauges du HUD.
+- Focus clavier des menus : `grab_focus()` immédiat après reconstruction d'une liste (un
+  `grab_focus.call_deferred()` peut écraser une sélection faite entre-temps).
+- Changer de scène : toujours via `GameState.change_scene()` (dépause, remet `Engine.time_scale`).
 - **Couleurs Blender** : les couleurs des scripts sont en sRGB et `lowpoly.material()` les convertit
   en linéaire (Blender/glTF stockent du linéaire) ; sinon tout sort délavé dans Godot.
 - **Sol en triangles (-colonly)** : `is_on_floor()` peut clignoter une image. Les états au sol
@@ -460,6 +500,6 @@ Player (CharacterBody3D, player.gd, groupe "player")
 | 4 | Ennemis et IA | fait |
 | 5 | Pipeline Blender → Godot | fait |
 | 6 | Monde, objets et interactions | fait |
-| 7 | HUD et interface | à faire |
+| 7 | HUD et interface | fait |
 | 8 | Finitions | à faire |
 | 9 | Export en exécutable + Release GitHub | à faire |

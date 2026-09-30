@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/world/level.gd" id="1_level"]
+[ext_resource type="PackedScene" path="res://scene/ui/game_ui.tscn" id="ui_game"]
 [ext_resource type="PackedScene" path="res://scene/player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://scene/enemies/training_dummy.tscn" id="3_dummy"]
 [ext_resource type="PackedScene" path="res://scene/enemies/slime.tscn" id="4_slime"]
@@ -286,3 +287,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, -15)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+
+[node name="GameUI" parent="." instance=ExtResource("ui_game")]

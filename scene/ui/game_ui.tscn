@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/game_ui.gd" id="1_ui"]
+[ext_resource type="PackedScene" path="res://scene/ui/hud.tscn" id="2_hud"]
+[ext_resource type="PackedScene" path="res://scene/ui/interaction_prompt.tscn" id="3_prompt"]
+[ext_resource type="PackedScene" path="res://scene/ui/inventory_menu.tscn" id="4_inventory"]
+[ext_resource type="PackedScene" path="res://scene/ui/pause_menu.tscn" id="5_pause"]
+[ext_resource type="PackedScene" path="res://scene/ui/death_screen.tscn" id="6_death"]
+
+[node name="GameUI" type="Node"]
+process_mode = 3
+script = ExtResource("1_ui")
+
+[node name="HUD" parent="." instance=ExtResource("2_hud")]
+
+[node name="InteractionPrompt" parent="." instance=ExtResource("3_prompt")]
+
+[node name="InventoryMenu" parent="." instance=ExtResource("4_inventory")]
+
+[node name="PauseMenu" parent="." instance=ExtResource("5_pause")]
+
+[node name="DeathScreen" parent="." instance=ExtResource("6_death")]

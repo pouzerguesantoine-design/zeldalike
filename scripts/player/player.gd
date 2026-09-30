@@ -94,6 +94,7 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	apply_stats(true)
+	_restore_from_save_point()
 	equip_weapon_visual(GameState.equipped_weapon)
 	GameState.stats_changed.connect(apply_stats.bind(false))
 	GameState.equipment_changed.connect(equip_weapon_visual)
@@ -367,7 +368,25 @@ func _on_level_up(new_level: int) -> void:
 
 
 func _on_game_saving() -> void:
-	GameState.data["player"] = {"hp": health.hp, "mana": mana.mana}
+	var p := global_position
+	GameState.data["player"] = {"hp": health.hp, "mana": mana.mana,
+		"position": [p.x, p.y, p.z], "yaw": model.rotation.y}
+
+
+## Réapparition après un chargement : position, vie et mana du point de sauvegarde.
+func _restore_from_save_point() -> void:
+	var saved := GameState.consume_player_restore()
+	if saved.is_empty():
+		return
+	if saved.has("hp"):
+		health.set_hp(int(saved["hp"]))
+	if saved.has("mana"):
+		mana.set_mana(float(saved["mana"]))
+	var position_array: Array = saved.get("position", [])
+	if position_array.size() == 3:
+		global_position = Vector3(position_array[0], position_array[1], position_array[2])
+		model.rotation.y = float(saved.get("yaw", 0.0))
+		reset_physics_interpolation()
 
 
 func _on_game_loaded() -> void:

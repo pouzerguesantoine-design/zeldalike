@@ -1,0 +1,73 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/death_screen.gd" id="1_menu"]
+[ext_resource type="Theme" path="res://resources/ui/theme.tres" id="theme"]
+
+[node name="DeathScreen" type="CanvasLayer"]
+layer = 40
+script = ExtResource("1_menu")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("theme")
+
+[node name="Dim" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.18, 0, 0.02, 0.72)
+
+[node name="Panel" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260
+offset_top = -165
+offset_right = 260
+offset_bottom = 165
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="Root/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="Root/Panel/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.82, 0.38, 1)
+theme_override_font_sizes/font_size = 40
+text = "Vous êtes à terre…"
+horizontal_alignment = 1
+
+[node name="HintLabel" type="Label" parent="Root/Panel/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 17
+text = ""
+horizontal_alignment = 1
+
+[node name="RespawnButton" type="Button" parent="Root/Panel/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(320, 50)
+text = "Réapparaître"
+
+[node name="TitleButton" type="Button" parent="Root/Panel/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(320, 50)
+text = "Retour au titre"
+

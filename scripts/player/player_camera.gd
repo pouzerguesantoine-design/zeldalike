@@ -33,8 +33,9 @@ var _target_yaw: float = 0.0
 var _target_pitch: float = 0.0
 ## Intensité courante du tremblement (0 à 1).
 var _trauma: float = 0.0
-## Vrai après Échap, jusqu'au clic qui recapture la souris.
+## Vrai quand la souris est libérée (menu ouvert…), jusqu'à sa recapture.
 var _mouse_released: bool = false
+var _menu_open: bool = false
 ## Image physique du clic de recapture (ce clic ne doit pas attaquer).
 var _recapture_frame: int = -10
 
@@ -45,6 +46,7 @@ var _recapture_frame: int = -10
 
 func _ready() -> void:
 	top_level = true
+	EventBus.game_menu_toggled.connect(_on_game_menu_toggled)
 	spring_arm.add_excluded_object(player.get_rid())
 	# Les enfants sont prêts avant le parent : attendre les @onready du joueur.
 	if not player.is_node_ready():
@@ -63,16 +65,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		_target_yaw -= motion.relative.x * mouse_sensitivity
 		_target_pitch -= motion.relative.y * mouse_sensitivity * y_sign
 		_target_pitch = clampf(_target_pitch, deg_to_rad(min_pitch_degrees), deg_to_rad(max_pitch_degrees))
-	elif event.is_action_pressed("pause"):
-		# Échap libère la souris (le menu pause viendra au jalon 7).
+	elif event is InputEventMouseButton and event.is_pressed() and not _menu_open \
+			and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and DisplayServer.get_name() != "headless":
+		# La souris a été libérée (fenêtre quittée…) : un clic la recapture, sans attaquer.
+		_capture_mouse()
+		get_viewport().set_input_as_handled()
+
+
+## Menus (inventaire, pause, mort) : souris libre pendant le menu, recapturée ensuite.
+func _on_game_menu_toggled(is_open: bool) -> void:
+	_menu_open = is_open
+	if is_open:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		_mouse_released = true
-	elif event is InputEventMouseButton and event.is_pressed() and _mouse_released:
-		# Un clic dans la fenêtre recapture la souris.
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-		_mouse_released = false
-		_recapture_frame = Engine.get_physics_frames()
-		get_viewport().set_input_as_handled()
+	else:
+		_capture_mouse()
+
+
+func _capture_mouse() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_mouse_released = false
+	# Le clic qui ferme un menu ou recapture la souris ne doit pas déclencher d'attaque.
+	_recapture_frame = Engine.get_physics_frames()
 
 
 func _process(delta: float) -> void:

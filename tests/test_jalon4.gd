@@ -137,6 +137,8 @@ func run() -> void:
 	print("== Ramassage")
 	var rupees_before := GameState.rupees
 	for pickup in _pickups():
+		if not is_instance_valid(pickup):
+			continue  # déjà aspiré vers le joueur (jalon 6)
 		teleport(_player, pickup.global_position + Vector3(0, 0.1, 0))
 		await frames(40)
 	check(_pickups().is_empty(), "tout le butin est ramassé")
@@ -175,7 +177,7 @@ func run() -> void:
 	var saved_jelly := GameState.get_item_count(&"slime_jelly")
 	check(GameState.save_game(TEST_SAVE_PATH), "écriture")
 	GameState.new_game()
-	check(GameState.rupees == 0 and GameState.inventory.is_empty(), "nouvelle partie : inventaire vide")
+	check(GameState.rupees == 0 and GameState.inventory.keys() == [&"wooden_sword_item"], "nouvelle partie : seulement l'épée en bois")
 	check(GameState.load_game(TEST_SAVE_PATH), "lecture")
 	check(GameState.rupees == saved_rupees and GameState.get_item_count(&"slime_jelly") == saved_jelly, "rubis et objets restaurés")
 	delete_user_file(TEST_SAVE_PATH)

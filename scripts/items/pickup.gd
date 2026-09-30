@@ -15,6 +15,8 @@ extends Area3D
 @export var pop_duration: float = 0.45
 @export var pop_height: float = 1.0
 @export_group("Aspiration")
+## Faux pour un objet jeté par le joueur : il faut marcher dessus pour le reprendre.
+@export var magnet_enabled: bool = true
 ## Distance à laquelle l'objet file vers le joueur.
 @export var magnet_radius: float = 2.5
 @export var magnet_speed: float = 7.0
@@ -51,7 +53,7 @@ func _physics_process(delta: float) -> void:
 			return
 	# Aspiration : accélère vers le joueur quand il est assez près.
 	var target := player.global_position + Vector3.UP * 0.4
-	if global_position.distance_to(target) <= magnet_radius:
+	if magnet_enabled and global_position.distance_to(target) <= magnet_radius:
 		if _pop_tween and _pop_tween.is_running():
 			_pop_tween.kill()
 		_magnet_velocity = minf(_magnet_velocity + magnet_acceleration * delta, magnet_speed)

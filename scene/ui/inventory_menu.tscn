@@ -1,0 +1,285 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/inventory_menu.gd" id="1_menu"]
+[ext_resource type="Theme" path="res://resources/ui/theme.tres" id="theme"]
+
+[node name="InventoryMenu" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1_menu")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("theme")
+
+[node name="Dim" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Window" type="PanelContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -490
+offset_top = -300
+offset_right = 490
+offset_bottom = 300
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="Root/Window"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Root/Window/Box"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="Root/Window/Box/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.82, 0.38, 1)
+theme_override_font_sizes/font_size = 30
+text = "INVENTAIRE"
+
+[node name="Spacer" type="Control" parent="Root/Window/Box/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RupeeLabel" type="Label" parent="Root/Window/Box/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 1, 0.55, 1)
+theme_override_font_sizes/font_size = 20
+text = "Rubis : 0"
+size_flags_vertical = 4
+
+[node name="Hint" type="Label" parent="Root/Window/Box/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.72, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "[I] Fermer   [Tab] Onglet   Flèches + Entrée"
+size_flags_vertical = 4
+
+[node name="Tabs" type="TabContainer" parent="Root/Window/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 0
+
+[node name="Objets" type="HBoxContainer" parent="Root/Window/Box/Tabs"]
+layout_mode = 2
+theme_override_constants/separation = 16
+metadata/_tab_index = 0
+
+[node name="Left" type="VBoxContainer" parent="Root/Window/Box/Tabs/Objets"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Window/Box/Tabs/Objets/Left"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ItemGrid" type="GridContainer" parent="Root/Window/Box/Tabs/Objets/Left/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 6
+
+[node name="EmptyLabel" type="Label" parent="Root/Window/Box/Tabs/Objets/Left"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.72, 0.8, 1)
+theme_override_font_sizes/font_size = 18
+text = "Aucun objet pour l'instant."
+
+[node name="Details" type="PanelContainer" parent="Root/Window/Box/Tabs/Objets"]
+custom_minimum_size = Vector2(330, 0)
+layout_mode = 2
+
+[node name="Box" type="VBoxContainer" parent="Root/Window/Box/Tabs/Objets/Details"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="DetailIcon" type="TextureRect" parent="Root/Window/Box/Tabs/Objets/Details/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+size_flags_horizontal = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DetailName" type="Label" parent="Root/Window/Box/Tabs/Objets/Details/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.82, 0.38, 1)
+theme_override_font_sizes/font_size = 26
+text = "Objet"
+horizontal_alignment = 1
+
+[node name="DetailType" type="Label" parent="Root/Window/Box/Tabs/Objets/Details/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.72, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "Type"
+horizontal_alignment = 1
+
+[node name="DetailDescription" type="Label" parent="Root/Window/Box/Tabs/Objets/Details/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Description"
+custom_minimum_size = Vector2(290, 0)
+autowrap_mode = 3
+
+[node name="DetailEffect" type="Label" parent="Root/Window/Box/Tabs/Objets/Details/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 1, 0.6, 1)
+theme_override_font_sizes/font_size = 17
+text = "Effet"
+autowrap_mode = 3
+
+[node name="Spacer" type="Control" parent="Root/Window/Box/Tabs/Objets/Details/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Window/Box/Tabs/Objets/Details/Box"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="UseButton" type="Button" parent="Root/Window/Box/Tabs/Objets/Details/Box/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Utiliser"
+
+[node name="EquipButton" type="Button" parent="Root/Window/Box/Tabs/Objets/Details/Box/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Équiper"
+
+[node name="DropButton" type="Button" parent="Root/Window/Box/Tabs/Objets/Details/Box/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Jeter"
+
+[node name="MessageLabel" type="Label" parent="Root/Window/Box/Tabs/Objets/Details/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Équipement" type="HBoxContainer" parent="Root/Window/Box/Tabs"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 16
+metadata/_tab_index = 1
+
+[node name="Left" type="VBoxContainer" parent="Root/Window/Box/Tabs/Équipement"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EquippedTitle" type="Label" parent="Root/Window/Box/Tabs/Équipement/Left"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.82, 0.38, 1)
+theme_override_font_sizes/font_size = 18
+text = "Arme équipée"
+
+[node name="EquippedSlot" type="HBoxContainer" parent="Root/Window/Box/Tabs/Équipement/Left"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EquippedIcon" type="TextureRect" parent="Root/Window/Box/Tabs/Équipement/Left/EquippedSlot"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="EquippedName" type="Label" parent="Root/Window/Box/Tabs/Équipement/Left/EquippedSlot"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Épée"
+size_flags_vertical = 4
+
+[node name="WeaponsTitle" type="Label" parent="Root/Window/Box/Tabs/Équipement/Left"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.82, 0.38, 1)
+theme_override_font_sizes/font_size = 18
+text = "Armes possédées"
+
+[node name="WeaponList" type="VBoxContainer" parent="Root/Window/Box/Tabs/Équipement/Left"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Compare" type="PanelContainer" parent="Root/Window/Box/Tabs/Équipement"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Box" type="VBoxContainer" parent="Root/Window/Box/Tabs/Équipement/Compare"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CompareTitle" type="Label" parent="Root/Window/Box/Tabs/Équipement/Compare/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.82, 0.38, 1)
+theme_override_font_sizes/font_size = 18
+text = "Comparaison"
+autowrap_mode = 3
+
+[node name="CompareGrid" type="GridContainer" parent="Root/Window/Box/Tabs/Équipement/Compare/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 14
+columns = 3
+
+[node name="Spacer" type="Control" parent="Root/Window/Box/Tabs/Équipement/Compare/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EquipWeaponButton" type="Button" parent="Root/Window/Box/Tabs/Équipement/Compare/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Équiper cette arme"
+
+[node name="Stats" type="PanelContainer" parent="Root/Window/Box/Tabs/Équipement"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+
+[node name="Box" type="VBoxContainer" parent="Root/Window/Box/Tabs/Équipement/Stats"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="StatsTitle" type="Label" parent="Root/Window/Box/Tabs/Équipement/Stats/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.96, 0.82, 0.38, 1)
+theme_override_font_sizes/font_size = 18
+text = "Statistiques"
+
+[node name="StatsGrid" type="GridContainer" parent="Root/Window/Box/Tabs/Équipement/Stats/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 18
+columns = 2

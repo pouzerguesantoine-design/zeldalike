@@ -21,7 +21,7 @@ func run() -> void:
 	child_entered_tree.connect(func(node: Node) -> void:
 		if node is FloatingText: _texts_seen.append((node as FloatingText).text))
 	_player = _level.get_node("Player") as Player
-	_prompt = _level.get_node("InteractionPrompt") as InteractionPrompt
+	_prompt = _level.get_node("GameUI/InteractionPrompt") as InteractionPrompt
 	var nav := _level.get_node("NavigationRegion3D") as NavigationRegion3D
 	await frames(20)
 

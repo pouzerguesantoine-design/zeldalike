@@ -1,0 +1,96 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/world/save_point.gd" id="1_save"]
+[ext_resource type="Script" path="res://scripts/components/interactable.gd" id="2_interactable"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_stone"]
+albedo_color = Color(0.62, 0.64, 0.7, 1)
+
+[sub_resource type="StandardMaterial3D" id="Mat_gold"]
+albedo_color = Color(0.93, 0.75, 0.25, 1)
+metallic = 0.6
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="Mat_crystal"]
+transparency = 1
+albedo_color = Color(0.45, 0.9, 1, 0.85)
+roughness = 0.05
+emission_enabled = true
+emission = Color(0.3, 0.8, 1, 1)
+emission_energy_multiplier = 1.6
+
+[sub_resource type="CylinderMesh" id="Mesh_pedestal"]
+material = SubResource("Mat_stone")
+top_radius = 0.42
+bottom_radius = 0.6
+height = 1.0
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Mesh_rim"]
+material = SubResource("Mat_gold")
+top_radius = 0.5
+bottom_radius = 0.5
+height = 0.1
+radial_segments = 8
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Mesh_tip"]
+material = SubResource("Mat_crystal")
+top_radius = 0.0
+bottom_radius = 0.28
+height = 0.55
+radial_segments = 4
+rings = 1
+
+[sub_resource type="CylinderShape3D" id="Shape_body"]
+height = 1.2
+radius = 0.6
+
+[sub_resource type="BoxShape3D" id="Shape_interaction"]
+size = Vector3(2.2, 2, 2.2)
+
+[node name="SavePoint" type="Node3D"]
+script = ExtResource("1_save")
+
+[node name="Pedestal" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("Mesh_pedestal")
+
+[node name="Rim" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.02, 0)
+mesh = SubResource("Mesh_rim")
+
+[node name="Crystal" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
+
+[node name="Top" type="MeshInstance3D" parent="Crystal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.27, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_tip")
+
+[node name="Bottom" type="MeshInstance3D" parent="Crystal"]
+transform = Transform3D(1, 0, 0, 0, -1, 0, 0, 0, -1, 0, -0.27, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_tip")
+
+[node name="Glow" type="OmniLight3D" parent="Crystal"]
+light_color = Color(0.4, 0.85, 1, 1)
+light_energy = 1.6
+omni_range = 4.0
+
+[node name="Body" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("Shape_body")
+
+[node name="Interactable" type="Area3D" parent="."]
+collision_layer = 64
+collision_mask = 0
+script = ExtResource("2_interactable")
+prompt = "Sauvegarder"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Interactable"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("Shape_interaction")

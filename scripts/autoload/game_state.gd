@@ -17,6 +17,10 @@ signal equipment_changed(weapon: WeaponData)
 signal inventory_changed
 
 const SAVE_PATH := "user://savegame.json"
+const LEVEL_SCENE := "res://scene/world/island.tscn"
+const TITLE_SCENE := "res://scene/ui/title_screen.tscn"
+## Objets de départ d'une nouvelle partie (l'épée en bois est aussi équipée).
+const STARTING_ITEMS: Dictionary[StringName, int] = {&"wooden_sword_item": 1}
 const BASE_PLAYER_STATS: PlayerStats = preload("res://resources/stats/player_base_stats.tres")
 ## Toutes les armes (.tres) de ce dossier sont chargées au démarrage.
 const WEAPONS_DIR := "res://resources/weapons/"
@@ -33,8 +37,13 @@ const DEBUG_WEAPON_ACTIONS: Dictionary[StringName, StringName] = {
 	&"debug_weapon_3": &"fire_blade",
 }
 
+## Fichier de sauvegarde utilisé (les tests le remplacent pour ne pas toucher la vraie).
+var save_path: String = SAVE_PATH
 ## Données sérialisables de la partie, rangées par section ("player", "world"…).
 var data: Dictionary = {}
+## Vrai après un chargement suivi d'un changement de scène : le prochain joueur créé
+## reprend la position, la vie et le mana sauvegardés (point de sauvegarde).
+var restore_player_on_spawn: bool = false
 ## Stats courantes du joueur (copie de BASE_PLAYER_STATS qui évolue).
 var player_stats: PlayerStats
 ## Catalogue des armes, par identifiant.
@@ -76,8 +85,10 @@ func new_game() -> void:
 	data = {}
 	player_stats = BASE_PLAYER_STATS.duplicate() as PlayerStats
 	inventory = {}
+	inventory.assign(STARTING_ITEMS)
 	rupees = 0
 	world_flags = {}
+	restore_player_on_spawn = false
 	stats_changed.emit()
 	inventory_changed.emit()
 	equip_weapon_by_id(DEFAULT_WEAPON_ID)
@@ -161,13 +172,58 @@ func has_flag(flag: StringName) -> bool:
 	return world_flags.get(flag, false)
 
 
+# --- Navigation entre les écrans ----------------------------------------------
+
+## Écran titre → « Nouvelle partie ».
+func start_new_game() -> void:
+	new_game()
+	change_scene(LEVEL_SCENE)
+
+
+## « Continuer » / « Charger » / « Réapparaître » : reprend au dernier point de sauvegarde,
+## ou recommence une partie s'il n'y a pas de sauvegarde.
+func continue_game() -> void:
+	if prepare_respawn():
+		change_scene(LEVEL_SCENE)
+	else:
+		start_new_game()
+
+
+## Charge la sauvegarde et demande au prochain joueur créé de reprendre sa position.
+func prepare_respawn() -> bool:
+	if not load_game():
+		return false
+	restore_player_on_spawn = true
+	return true
+
+
+## Données du joueur à restaurer (une seule fois), ou {} s'il n'y a rien à restaurer.
+func consume_player_restore() -> Dictionary:
+	if not restore_player_on_spawn:
+		return {}
+	restore_player_on_spawn = false
+	return data.get("player", {})
+
+
+func go_to_title() -> void:
+	change_scene(TITLE_SCENE)
+
+
+func change_scene(path: String) -> void:
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+	get_tree().change_scene_to_file.call_deferred(path)
+
+
 # --- Sauvegarde ----------------------------------------------------------------
 
-func has_save(path: String = SAVE_PATH) -> bool:
-	return FileAccess.file_exists(path)
+func has_save(path: String = "") -> bool:
+	return FileAccess.file_exists(path if not path.is_empty() else save_path)
 
 
-func save_game(path: String = SAVE_PATH) -> bool:
+func save_game(path: String = "") -> bool:
+	if path.is_empty():
+		path = save_path
 	saving.emit()
 	data["player_stats"] = player_stats.to_dict()
 	data["equipment"] = {"weapon": String(equipped_weapon.id)}
@@ -182,7 +238,9 @@ func save_game(path: String = SAVE_PATH) -> bool:
 	return true
 
 
-func load_game(path: String = SAVE_PATH) -> bool:
+func load_game(path: String = "") -> bool:
+	if path.is_empty():
+		path = save_path
 	if not has_save(path):
 		return false
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
