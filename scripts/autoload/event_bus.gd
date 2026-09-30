@@ -19,5 +19,7 @@ signal level_up(new_level: int)
 signal player_died
 ## La cible du lock-on a changé (null = lock-on relâché).
 signal lock_on_target_changed(target: Node3D)
+## L'objet activable devant le joueur a changé (null = aucun).
+signal interaction_target_changed(target: Interactable)
 
 @warning_ignore_restore("unused_signal")

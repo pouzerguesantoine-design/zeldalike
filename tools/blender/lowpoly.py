@@ -48,8 +48,19 @@ def link(obj):
 
 # ------------------------------------------------------------------------ matériaux
 
+def srgb_to_linear(color):
+    """Les couleurs des scripts sont données en sRGB (comme un sélecteur de couleur) ;
+    Blender (et le glTF) stockent les couleurs de matériau en espace LINÉAIRE."""
+    def channel(c):
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    return tuple(channel(c) for c in color)
+
+
 def material(name, color, roughness=0.8, metallic=0.0, emission=None, emission_strength=2.0, alpha=1.0):
-    """Matériau Principled simple (couleur unie). Réutilisé s'il existe déjà."""
+    """Matériau Principled simple (couleur unie, donnée en sRGB). Réutilisé s'il existe déjà."""
+    color = srgb_to_linear(color)
+    if emission:
+        emission = srgb_to_linear(emission)
     mat = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     try:
         mat.use_nodes = True

@@ -45,6 +45,8 @@ var items: Dictionary[StringName, ItemData] = {}
 ## Inventaire : identifiant d'objet → quantité.
 var inventory: Dictionary[StringName, int] = {}
 var rupees: int = 0
+## Drapeaux du monde : coffres ouverts, portes déverrouillées… (« chest:<id> », « door:<id> »).
+var world_flags: Dictionary[StringName, bool] = {}
 
 
 func _ready() -> void:
@@ -75,6 +77,7 @@ func new_game() -> void:
 	player_stats = BASE_PLAYER_STATS.duplicate() as PlayerStats
 	inventory = {}
 	rupees = 0
+	world_flags = {}
 	stats_changed.emit()
 	inventory_changed.emit()
 	equip_weapon_by_id(DEFAULT_WEAPON_ID)
@@ -137,6 +140,27 @@ func get_item_count(item_id: StringName) -> int:
 	return inventory.get(item_id, 0)
 
 
+## Retire `quantity` exemplaires (clé utilisée, potion bue…). Renvoie false s'il en manque.
+func remove_item(item_id: StringName, quantity: int = 1) -> bool:
+	if get_item_count(item_id) < quantity:
+		return false
+	inventory[item_id] -= quantity
+	if inventory[item_id] <= 0:
+		inventory.erase(item_id)
+	inventory_changed.emit()
+	return true
+
+
+# --- Drapeaux du monde ------------------------------------------------------------
+
+func set_flag(flag: StringName, value: bool = true) -> void:
+	world_flags[flag] = value
+
+
+func has_flag(flag: StringName) -> bool:
+	return world_flags.get(flag, false)
+
+
 # --- Sauvegarde ----------------------------------------------------------------
 
 func has_save(path: String = SAVE_PATH) -> bool:
@@ -149,6 +173,7 @@ func save_game(path: String = SAVE_PATH) -> bool:
 	data["equipment"] = {"weapon": String(equipped_weapon.id)}
 	data["inventory"] = inventory.duplicate()
 	data["rupees"] = rupees
+	data["world_flags"] = world_flags.duplicate()
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		push_error("Sauvegarde impossible (%s) : %s" % [path, error_string(FileAccess.get_open_error())])
@@ -176,6 +201,10 @@ func load_game(path: String = SAVE_PATH) -> bool:
 		if items.has(StringName(item_id)):
 			inventory[StringName(item_id)] = int(saved_inventory[item_id])
 	rupees = int(data.get("rupees", 0))
+	world_flags = {}
+	var saved_flags: Dictionary = data.get("world_flags", {})
+	for flag in saved_flags:
+		world_flags[StringName(flag)] = bool(saved_flags[flag])
 	stats_changed.emit()
 	inventory_changed.emit()
 	loaded.emit()

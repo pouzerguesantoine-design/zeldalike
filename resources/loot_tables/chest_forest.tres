@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="LootTable" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/loot_table.gd" id="1_table"]
+[ext_resource type="Script" path="res://scripts/items/loot_entry.gd" id="2_entry"]
+[ext_resource type="Resource" path="res://resources/items/knight_sword_item.tres" id="3_knight_sword_item"]
+[ext_resource type="Resource" path="res://resources/items/rupee.tres" id="4_rupee"]
+
+[sub_resource type="Resource" id="Entry_guaranteed_knight_sword_item"]
+script = ExtResource("2_entry")
+item = ExtResource("3_knight_sword_item")
+weight = 1
+min_quantity = 1
+max_quantity = 1
+chance = 1.0
+
+[sub_resource type="Resource" id="Entry_guaranteed_rupee"]
+script = ExtResource("2_entry")
+item = ExtResource("4_rupee")
+weight = 1
+min_quantity = 8
+max_quantity = 12
+chance = 1.0
+
+[resource]
+script = ExtResource("1_table")
+entries = Array[ExtResource("2_entry")]([])
+rolls = 0
+guaranteed = Array[ExtResource("2_entry")]([SubResource("Entry_guaranteed_knight_sword_item"), SubResource("Entry_guaranteed_rupee")])

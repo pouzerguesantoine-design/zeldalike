@@ -14,7 +14,8 @@ Godot (installé par winget, raccourcis Bureau + menu Démarrer) :
 
 ```bash
 "$G" --headless --path . --import                            # (ré)importer après ajout de fichiers
-"$G" --headless --path . --quit-after 300                    # lancer le jeu sans fenêtre : aucune erreur attendue
+"$G" --headless --path . --quit-after 300                    # lancer le jeu (l'île) sans fenêtre : aucune erreur attendue
+"$G" --headless --path . res://tools/godot/bake_navmesh.tscn # recuire la navigation de l'île après un changement de décor
 "$G" --headless --path . res://tests/test_jalon2.tscn        # tests auto d'un jalon (code de sortie 0 = OK)
 "$G" --path . res://tests/test_jalon2.tscn -- capture.png    # idem + capture d'écran du rendu
 ```
@@ -52,7 +53,8 @@ resources/weapons/  resources/spells/  resources/items/  resources/loot_tables/ 
 resources/animation/  AnimationTree du joueur (généré par tools/godot/)
 tests/                scènes de test automatiques (à exclure de l'export, jalon 9)
 tools/blender/        scripts Python qui construisent les modèles dans Blender (ignoré par Godot)
-tools/godot/          scripts Godot de génération (AnimationTree)
+tools/godot/          scripts Godot de génération (AnimationTree, cuisson de la navigation)
+tools/level/          générateur initial de l'île (écrase island.tscn : à ne plus relancer)
 ```
 
 Les dossiers encore vides contiennent un `.gitkeep`.
@@ -78,8 +80,8 @@ Les dossiers encore vides contiennent un `.gitkeep`.
 
 | Nom | Script | Rôle |
 |---|---|---|
-| `EventBus` | `scripts/autoload/event_bus.gd` | Signaux globaux : `damage_dealt(target, info)`, `enemy_died(enemy)`, `item_picked_up(item, quantity)`, `level_up(new_level)`, `player_died`, `lock_on_target_changed(target)` |
-| `GameState` | `scripts/autoload/game_state.gd` | `player_stats` (PlayerStats), `add_xp()`, `new_game()` ; catalogue `weapons` (tous les `.tres` de `resources/weapons/`), `equipped_weapon`, `equip_weapon()` / `equip_weapon_by_id()` ; catalogue `items` (`resources/items/`), `inventory` (id → quantité), `rupees`, `add_item()`, `get_item_count()` ; données persistantes `data` (par sections) ; `save_game()` / `load_game()` / `has_save()` en JSON dans `user://savegame.json`. Signaux `stats_changed`, `equipment_changed`, `inventory_changed`, `saving`, `loaded` |
+| `EventBus` | `scripts/autoload/event_bus.gd` | Signaux globaux : `damage_dealt(target, info)`, `enemy_died(enemy)`, `item_picked_up(item, quantity)`, `level_up(new_level)`, `player_died`, `lock_on_target_changed(target)`, `interaction_target_changed(target)` |
+| `GameState` | `scripts/autoload/game_state.gd` | drapeaux du monde `world_flags` (`set_flag()`, `has_flag()` : « chest:<id> », « door:<id> »), `remove_item()` ; `player_stats` (PlayerStats), `add_xp()`, `new_game()` ; catalogue `weapons` (tous les `.tres` de `resources/weapons/`), `equipped_weapon`, `equip_weapon()` / `equip_weapon_by_id()` ; catalogue `items` (`resources/items/`), `inventory` (id → quantité), `rupees`, `add_item()`, `get_item_count()` ; données persistantes `data` (par sections) ; `save_game()` / `load_game()` / `has_save()` en JSON dans `user://savegame.json`. Signaux `stats_changed`, `equipment_changed`, `inventory_changed`, `saving`, `loaded` |
 
 **Sauvegarde :** `GameState.save_game()` émet `saving` → chaque système écrit sa section dans
 `GameState.data` (ex. le joueur : `data["player"] = {"hp": …}`), puis `player_stats` est ajouté et le
@@ -110,6 +112,9 @@ chaque système relit sa section. Tout nouveau système persistant (coffres, por
 | Hitbox d'attaque d'un ennemi | 5 | 2 |
 | Zone de détection d'un ennemi | — | 2 |
 | Objet ramassable (Pickup) | 6 | 2 |
+| Interactable (coffre, porte…) | 7 | — |
+| InteractionDetector du joueur | — | 7 |
+| Murs invisibles (rivière, rivage de l'île) | 1 | — |
 | Projectile du joueur (Area3D) | 8 | 1 (explose sur le décor) |
 | Hitbox du projectile du joueur | 8 | 3 |
 | SpringArm de la caméra, ligne de vue du lock-on, SightRay des ennemis | — | 1 |
@@ -150,7 +155,9 @@ Touches **physiques** (même position sur AZERTY et QWERTY).
 | Projectile | `scripts/components/projectile.gd` | fait (Area3D + Hitbox enfant, tête chercheuse) |
 | DamageNumber | `scripts/ui/damage_number.gd`, `scene/ui/damage_number.tscn` | fait (couleur par type, critiques) |
 | EnemyHealthBar | `scripts/ui/enemy_health_bar.gd`, `scene/ui/enemy_health_bar.tscn` | fait (SubViewport + Sprite3D billboard, barre fantôme) |
-| Pickup | `scripts/items/pickup.gd`, `scene/items/pickup.tscn` | fait (base ; aspiration + texte « +1 » au jalon 6) |
+| Pickup | `scripts/items/pickup.gd`, `scene/items/pickup.tscn` | fait (flotte, tourne, aspiré à 2,5 m, texte « +1 … ») |
+| Interactable | `scripts/components/interactable.gd` | fait (Area3D calque 7, signal `interacted`, `prompt` / `prompt_provider`) |
+| FloatingText | `scripts/ui/floating_text.gd`, `scene/ui/floating_text.tscn` | fait (`FloatingText.spawn(tree, texte, position, couleur)`) |
 
 - **StateMachine** : les états sont ses enfants ; le **nom du nœud** est l'identifiant
   (`transition_to(&"Run", {msg})`). `actor` = parent par défaut. `auto_process_physics = false` quand
@@ -246,12 +253,47 @@ Rotations dans les scripts : axes monde (X : un membre pendant part vers l'avant
 - **Décors** : `.glb` instanciés directement (pas encore de script) sous `NavigationRegion3D/Props` du
   niveau de test ; le coffre et la porte deviendront interactifs au jalon 6 (scènes héritées + script).
 
+## Monde (jalon 6)
+
+- **Scène principale : `scene/world/island.tscn`** (l'île). `scene/world/main.tscn` = terrain
+  d'entraînement utilisé par les tests des jalons 1 à 5 (mannequins, obstacles).
+- Île (Godot : -Z = nord) : plage d'arrivée et **village** au sud (3 maisons, coffre), **forêt** à
+  l'ouest (coffre caché : épée de chevalier), **rivière** est-ouest (z ≈ -2) franchissable
+  uniquement par le **pont**, **zone d'ennemis** au nord (coffre gardé : petite clé), **donjon** au
+  nord-est fermé par une porte à clé (coffre : Lame de feu). Terrain et donjon générés dans Blender
+  (`tools/blender/build_island.py`).
+- Murs invisibles (StaticBody3D, calque world) : berges de la rivière (trou au pont) et anneau
+  au bord de l'eau. Mer = PlaneMesh à y = -0,55.
+- Navigation **précuite** : `resources/navigation/island_navmesh.tres` (812 polygones), régénérée
+  par `tools/godot/bake_navmesh.tscn` ; `level.gd` a `bake_navigation_on_ready = false` sur l'île.
+- Éclairage : ciel procédural, soleil chaud avec ombres, brouillard léger, SSAO, léger glow,
+  tonemap ACES, saturation ×1,15.
+
+## Interactions (jalon 6)
+
+- **Interactable** (Area3D, calque 7) posé sur l'objet ; **InteractionDetector** (Area3D devant
+  le joueur, masque 7) choisit le plus proche **devant** (angle ≤ 75°), émet
+  `EventBus.interaction_target_changed`. E (`interact`) dans un état au sol →
+  `player.interaction.try_interact()` → signal `interacted(player)`.
+- **InteractionPrompt** (`scene/ui/interaction_prompt.tscn`, CanvasLayer) affiche « Ouvrir  [E] » ;
+  sera fusionné dans le HUD au jalon 7.
+- **Coffre** (`scene/world/chest.tscn`, scène héritée de `chest.glb` + `scripts/world/chest.gd`) :
+  `chest_id`, `loot_table` ; ouverture → animation « open », drapeau `chest:<id>`, le butin jaillit
+  devant le coffre. Au chargement : couvercle ouvert si le drapeau existe.
+- **Porte** (`scene/world/door.tscn` + `scripts/world/door.gd`) : `door_id`, `required_key` (ItemData,
+  vide = libre), `consume_key`. Message : « Ouvrir » / « Déverrouiller » / « Verrouillée » ; sans clé :
+  texte flottant « Il faut une petite clé ! ». Drapeau `door:<id>`.
+
 ## Objets, butin (jalon 4, complété au jalon 6)
 
 - `ItemData` (`scripts/items/item_data.gd`, fichiers `resources/items/*.tres`) : `id`, `display_name`,
   `description`, `icon`, `type` (CONSOMMABLE, ARME, CLE, MATERIAU, MONNAIE), `stackable`, `max_quantity`,
   `heal_amount`, `use_on_pickup` (cœur : consommé au ramassage), `value` (rubis), `weapon`.
-- Objets existants : `rupee` (1 rubis), `heart` (+10 PV au ramassage), `slime_jelly`, `goblin_fang`.
+- Objets existants : `rupee` (« Rubis », 1 rubis), `heart` (+10 PV au ramassage), `potion` (rend 30 PV,
+  à utiliser depuis l'inventaire au jalon 7), `small_key` (« Petite clé »), `knight_sword_item` et
+  `fire_blade_item` (type ARME, champ `weapon`), `slime_jelly`, `goblin_fang`.
+- Tables des coffres : `chest_village` (rubis + potion), `chest_forest` (épée de chevalier + rubis),
+  `chest_key` (clé + cœur), `chest_dungeon` (Lame de feu + 20 rubis + potion).
 - `LootTable` + `LootEntry` (`resources/loot_tables/*.tres`) : entrée = {item, weight, min/max_quantity,
   chance}. `roll(rng)` : chaque entrée de `guaranteed` est testée avec sa chance ; puis `rolls` tirages
   pondérés dans `entries`, chacun validé par sa chance. Les quantités d'un même objet sont cumulées.
@@ -366,6 +408,10 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Roulade arrière (sans direction) = animation `roll` jouée à l'envers (état `roll_back`).
 - L'épée est tenue pointe vers l'avant au repos ; pendant les tailles, la main pivote pour
   prolonger la lame dans l'axe du bras.
+- Une arme trouvée va dans l'inventaire (comme dans BotW, pas d'équipement automatique) : on
+  l'équipera depuis le menu au jalon 7 (en attendant : touches de test 1/2/3).
+- La petite clé est consommée par la porte ; interagir n'est possible qu'au sol, hors attaque.
+- Coffre à la Zelda : le couvercle s'ouvre, puis le butin jaillit et est aspiré vers le joueur.
 - Couleurs des chiffres de dégâts : blanc physique, orange feu, bleu glace, jaune pâle foudre, violet
   magie ; critique = plus gros, jaune doré, suivi de « ! ».
 
@@ -376,7 +422,9 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Les boucles importées durent une image de plus que prévu (ex. idle 1,03 s) : léger temps mort
   en fin de boucle, à corriger si gênant (exporter sans la dernière image dupliquée).
 - Mannequins d'entraînement (`scene/enemies/training_dummy.tscn`) : vie infinie, pour tester les armes.
-- Maillage de navigation cuit au lancement → cuit dans l'éditeur avec le vrai niveau au **jalon 6**.
+- Le terrain d'entraînement (`main.tscn`) cuit encore sa navigation au lancement (niveau de test).
+- La porte du donjon ne recalcule pas la navigation en s'ouvrant : un ennemi enfermé dedans ne sait
+  pas en sortir par le chemin (repli en ligne droite).
 - Pas encore de particules d'impact ni d'explosion de la boule d'énergie → **jalon 8**.
 - Niveau de test `scene/world/main.tscn` (sol, murs, plateformes) → île au **jalon 6**.
 
@@ -390,6 +438,12 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Dictionnaires typés (`Dictionary[StringName, X]`) : remplir avec `.assign()` depuis un dictionnaire
   non typé.
 - Changer `monitoring`/`monitorable` pendant un rappel physique : utiliser `set_deferred()`.
+- **Couleurs Blender** : les couleurs des scripts sont en sRGB et `lowpoly.material()` les convertit
+  en linéaire (Blender/glTF stockent du linéaire) ; sinon tout sort délavé dans Godot.
+- **Sol en triangles (-colonly)** : `is_on_floor()` peut clignoter une image. Les états au sol
+  utilisent `player.is_grounded()` (tolérance `ground_grace_time` = 0,1 s) avant de passer en chute.
+- Tests : après une téléportation, attendre l'atterrissage (état Idle) avant de simuler E ou une
+  attaque (les actions ne sont acceptées qu'au sol).
 - Blender 5.2 : un enfant d'os est placé relativement à la **queue** de l'os ; `lowpoly.attach_to_bone()`
   le gère. Lire `matrix_world` d'un objet juste créé renvoie l'identité (pas encore évalué).
 - Scripts Godot lancés avec `-s` depuis `tools/` : fonctionnent malgré le `.gdignore`, mais sans
@@ -405,7 +459,7 @@ Player (CharacterBody3D, player.gd, groupe "player")
 | 3 | Armes, combos et magie | fait |
 | 4 | Ennemis et IA | fait |
 | 5 | Pipeline Blender → Godot | fait |
-| 6 | Monde, objets et interactions | à faire |
+| 6 | Monde, objets et interactions | fait |
 | 7 | HUD et interface | à faire |
 | 8 | Finitions | à faire |
 | 9 | Export en exécutable + Release GitHub | à faire |

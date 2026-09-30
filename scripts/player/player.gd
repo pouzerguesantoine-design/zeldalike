@@ -29,6 +29,9 @@ const LEVEL_UP_EFFECT := preload("res://scene/player/level_up_effect.tscn")
 @export var coyote_time: float = 0.12
 ## Un appui sur Espace juste avant d'atterrir est mémorisé pendant ce délai.
 @export var jump_buffer_time: float = 0.15
+## Tolérance avant de considérer qu'on a quitté le sol : sur un terrain en triangles,
+## is_on_floor() peut clignoter une image ; sans cette marge, on passerait en chute.
+@export var ground_grace_time: float = 0.1
 
 @export_group("Endurance")
 @export var sprint_stamina_per_second: float = 20.0
@@ -84,6 +87,7 @@ var _weapon_model: Node3D
 @onready var stamina: StaminaComponent = $StaminaComponent
 @onready var mana: ManaComponent = $ManaComponent
 @onready var lock_on: LockOnComponent = $LockOnComponent
+@onready var interaction: InteractionDetector = $Model/InteractionDetector
 
 
 func _ready() -> void:
@@ -231,6 +235,11 @@ func _update_jump_timers(delta: float) -> void:
 		_jump_buffer_left = jump_buffer_time
 	else:
 		_jump_buffer_left = maxf(_jump_buffer_left - delta, 0.0)
+
+
+## Au sol (avec la tolérance `ground_grace_time`) : utilisé par les états au sol.
+func is_grounded() -> bool:
+	return is_on_floor() or (_time_since_on_floor < ground_grace_time and velocity.y <= 0.0)
 
 
 ## Au sol, ou en l'air depuis moins de `coyote_time` sans avoir sauté.

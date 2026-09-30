@@ -13,11 +13,13 @@ func try_ground_actions() -> bool:
 	if player.try_consume_jump():
 		transition_to(&"Jump")
 		return true
-	if not player.is_on_floor():
+	if not player.is_grounded():
 		transition_to(&"Fall")
 		return true
 	if Input.is_action_just_pressed("dodge") and player.stamina.try_consume(player.dodge_stamina_cost):
 		transition_to(&"Dodge")
+		return true
+	if Input.is_action_just_pressed("interact") and player.interaction.try_interact():
 		return true
 	if player.combat_input_allowed():
 		# Attaquer coûte de l'endurance : impossible pendant l'épuisement.
@@ -44,7 +46,7 @@ func ground_state_from_input() -> StringName:
 
 ## État à rejoindre à la fin d'une action (roulade, attaque, coup reçu…).
 func state_after_action() -> StringName:
-	return ground_state_from_input() if player.is_on_floor() else &"Fall"
+	return ground_state_from_input() if player.is_grounded() else &"Fall"
 
 
 ## Déplacement aérien commun à Jump et Fall.

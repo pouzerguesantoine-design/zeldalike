@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/models/chest.glb" id="1_model"]
+[ext_resource type="Script" path="res://scripts/world/chest.gd" id="2_script"]
+[ext_resource type="Script" path="res://scripts/components/interactable.gd" id="3_interactable"]
+
+[sub_resource type="BoxShape3D" id="Shape_interaction"]
+size = Vector3(1.6, 1.2, 1.6)
+
+[node name="Chest" instance=ExtResource("1_model")]
+script = ExtResource("2_script")
+
+[node name="Interactable" type="Area3D" parent="."]
+collision_layer = 64
+collision_mask = 0
+script = ExtResource("3_interactable")
+prompt = "Ouvrir"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Interactable"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("Shape_interaction")
