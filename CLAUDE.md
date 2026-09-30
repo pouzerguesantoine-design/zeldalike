@@ -15,9 +15,14 @@ Godot (installé par winget, raccourcis Bureau + menu Démarrer) :
 ```bash
 "$G" --headless --path . --import                            # (ré)importer après ajout de fichiers
 "$G" --headless --path . --quit-after 300                    # lancer le jeu sans fenêtre : aucune erreur attendue
-"$G" --headless --path . res://tests/test_jalon1.tscn        # tests auto (code de sortie 0 = OK)
-"$G" --path . res://tests/test_jalon1.tscn -- capture.png    # idem + capture d'écran du rendu
+"$G" --headless --path . res://tests/test_jalon2.tscn        # tests auto d'un jalon (code de sortie 0 = OK)
+"$G" --path . res://tests/test_jalon2.tscn -- capture.png    # idem + capture d'écran du rendu
 ```
+
+- **Relancer les tests de TOUS les jalons** à chaque jalon (non-régression).
+- Chaque test hérite de `tests/test_case.gd` (`extends "res://tests/test_case.gd"`, redéfinir `run()`) :
+  `check()`, `frames()`, `load_main()`, `teleport()`, `send_action()`, `save_screenshot_if_requested()`,
+  garde-fou de 90 s. Scène `.tscn` d'une ligne à côté du script.
 
 - **Fermer l'éditeur Godot** avant de modifier des fichiers de l'extérieur (sinon il peut les réécraser).
 - Les tests sont des **scènes** (`tests/*.tscn`) et non des scripts `-s` : en mode `-s`, les autoloads
@@ -65,7 +70,12 @@ Les dossiers encore vides contiennent un `.gitkeep`.
 | Nom | Script | Rôle |
 |---|---|---|
 | `EventBus` | `scripts/autoload/event_bus.gd` | Signaux globaux : `damage_dealt(target, info)`, `enemy_died(enemy)`, `item_picked_up(item, quantity)`, `level_up(new_level)`, `player_died`, `lock_on_target_changed(target)` |
-| `GameState` | `scripts/autoload/game_state.gd` | Données persistantes (`data`, par sections) ; `save_game()` / `load_game()` / `has_save()` en JSON dans `user://savegame.json` |
+| `GameState` | `scripts/autoload/game_state.gd` | `player_stats` (PlayerStats), `add_xp()`, `new_game()`, données persistantes `data` (par sections) ; `save_game()` / `load_game()` / `has_save()` en JSON dans `user://savegame.json`. Signaux `stats_changed`, `saving`, `loaded` |
+
+**Sauvegarde :** `GameState.save_game()` émet `saving` → chaque système écrit sa section dans
+`GameState.data` (ex. le joueur : `data["player"] = {"hp": …}`), puis `player_stats` est ajouté et le
+tout écrit. `load_game()` relit, reconstruit `player_stats`, émet `stats_changed` puis `loaded` →
+chaque système relit sa section. Tout nouveau système persistant (coffres, portes…) suit ce schéma.
 
 ## Calques de collision (nommés dans Paramètres du projet)
 
@@ -99,6 +109,7 @@ Touches **physiques** (même position sur AZERTY et QWERTY).
 | interact | E |
 | inventory | I |
 | pause | Échap (pour l'instant : libère la souris ; un clic la recapture) |
+| debug_add_xp / debug_save / debug_load | F1 (+50 XP) / F2 (sauvegarder) / F3 (charger) — **builds de debug uniquement** (`OS.is_debug_build()`), gérés par GameState |
 
 ## Composants génériques
 
@@ -108,6 +119,7 @@ Touches **physiques** (même position sur AZERTY et QWERTY).
 | HealthComponent | `scripts/components/health_component.gd` | fait |
 | StaminaComponent | `scripts/components/stamina_component.gd` | fait |
 | DamageInfo | `scripts/components/damage_info.gd` | fait (types : PHYSIQUE, FEU, GLACE, FOUDRE, MAGIE) |
+| DamageCalculator | `scripts/components/damage_calculator.gd` | fait (formule ci-dessous, fonctions statiques) |
 | Hitbox / Hurtbox | `scene/components/` | à faire (jalon 3) |
 
 - **StateMachine** : les états sont ses enfants ; le **nom du nœud** est l'identifiant
@@ -128,8 +140,24 @@ dégâts = (dégâts_base_arme × multiplicateur_arme + Force)
 minimum 1
 ```
 
-Puis application des faiblesses / résistances : dictionnaire `{DamageType: multiplicateur}` dans les
-stats de l'ennemi (ex. `{FEU: 2.0}` = faible au feu, `{GLACE: 0.5}` = résistant). Implémentée au jalon 3.
+Puis × multiplicateur de type (faiblesse / résistance) : dictionnaire `{DamageType: multiplicateur}` dans
+les stats de l'ennemi (ex. `{FEU: 2.0}` = faible au feu, `{GLACE: 0.5}` = résistant), et arrondi.
+Code : `DamageCalculator.compute(base, mult_arme, force, mult_combo, critique, défense, mult_type)` et
+`DamageCalculator.type_multiplier(résistances, type)`. Branchée sur les Hitbox/Hurtbox au jalon 3.
+
+## Statistiques et niveaux (jalon 2)
+
+- `PlayerStats` (`scripts/player/player_stats.gd`) : `level`, `xp` (dans le niveau courant),
+  `max_hp`, `max_stamina`, `force`, `defense`, `speed`, gains par niveau, `max_level` (50).
+  Valeurs de départ et gains : **`resources/stats/player_base_stats.tres`** (réglable dans l'inspecteur).
+- XP pour passer au niveau suivant : `round(100 × niveau^1,5)` → 100, 283, 520, 800… Le surplus est conservé.
+- Montée de niveau : +5 PV max, +10 endurance max, +2 Force, +1 Défense, +1 Vitesse ; vie et endurance
+  remises au maximum ; `EventBus.level_up(niveau)` émis **une fois par niveau** ; effet
+  `scene/player/level_up_effect.tscn` (un seul à la fois).
+- Vitesse : multiplicateur de déplacement `1 + (Vitesse − 10) × 0,02` (min ×0,5), appliqué à la marche,
+  la course et la marche épuisée (`player.get_walk_speed()`…), pas à la roulade.
+- Sauvegardé : stats (`to_dict()` / `from_dict()`) + vie actuelle du joueur.
+- Pour donner de l'XP : `GameState.add_xp(quantité)` (ennemis au jalon 4).
 
 ## Joueur (`scene/player/player.tscn`)
 
@@ -152,6 +180,8 @@ Player (CharacterBody3D, player.gd, groupe "player")
   (saut, chute, roulade, attaque, magie).
 - Déplacements relatifs au **lacet de la caméra**. Tous les réglages sont des `@export` groupés.
 - Dégâts reçus : `HealthComponent.damaged` → état `Hurt` (recul) ; `died` → état `Dead`.
+- Stats : `player.apply_stats(refill)` reporte `GameState.player_stats` sur Health/Stamina
+  (au démarrage, à chaque `stats_changed`, et avec `refill = true` à la montée de niveau).
 - Lock-on : une cible = `Node3D` du groupe **`lockable`**, avec un `Marker3D` enfant **`LockOnPoint`**
   (position du marqueur et point visé). Pour le relâcher (ex. ennemi mort), retirer la cible du groupe.
 
@@ -168,6 +198,9 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Saut : gravité renforcée à la descente (×1.6), saut court si on relâche Espace tôt,
   coyote time 0,12 s, buffer 0,15 s.
 - Le clic qui recapture la souris ne déclenche pas d'attaque.
+- Montée de niveau : vie et endurance entièrement restaurées (récompense lisible, comme un
+  réceptacle de cœur). Pas de montée de niveau si le joueur est mort.
+- La vie de départ (30 PV) équivaut à 3 cœurs de 10 PV, pour un HUD en cœurs au jalon 7.
 
 ## Éléments provisoires (à remplacer)
 
@@ -185,7 +218,7 @@ Player (CharacterBody3D, player.gd, groupe "player")
 |---|---|---|
 | 0 | Préparation : arborescence, CLAUDE.md, calques, actions, autoloads | fait |
 | 1 | Caméra orbitale, déplacements, machine à états, lock-on, coyote time / buffer | fait |
-| 2 | Statistiques, niveaux et XP | à faire |
+| 2 | Statistiques, niveaux et XP | fait |
 | 3 | Armes, combos et magie | à faire |
 | 4 | Ennemis et IA | à faire |
 | 5 | Pipeline Blender → Godot | à faire |

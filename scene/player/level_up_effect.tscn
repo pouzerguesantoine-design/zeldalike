@@ -1,0 +1,74 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/player/level_up_effect.gd" id="1_effect"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_gold"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.85, 0.3, 1)
+
+[sub_resource type="TorusMesh" id="Mesh_ring"]
+material = SubResource("Mat_gold")
+inner_radius = 0.55
+outer_radius = 0.7
+rings = 32
+ring_segments = 6
+
+[sub_resource type="StandardMaterial3D" id="Mat_sparkle"]
+shading_mode = 0
+albedo_color = Color(1, 0.95, 0.55, 1)
+
+[sub_resource type="SphereMesh" id="Mesh_sparkle"]
+material = SubResource("Mat_sparkle")
+radius = 0.04
+height = 0.08
+radial_segments = 6
+rings = 3
+
+[sub_resource type="Curve" id="Curve_shrink"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[node name="LevelUpEffect" type="Node3D"]
+script = ExtResource("1_effect")
+
+[node name="Ring" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+cast_shadow = 0
+mesh = SubResource("Mesh_ring")
+
+[node name="Sparkles" type="CPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+emitting = false
+amount = 48
+lifetime = 1.2
+one_shot = true
+explosiveness = 0.85
+mesh = SubResource("Mesh_sparkle")
+emission_shape = 1
+emission_sphere_radius = 0.5
+direction = Vector3(0, 1, 0)
+spread = 35.0
+gravity = Vector3(0, -2, 0)
+initial_velocity_min = 2.5
+initial_velocity_max = 5.0
+scale_amount_curve = SubResource("Curve_shrink")
+
+[node name="Flash" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+light_color = Color(1, 0.85, 0.4, 1)
+light_energy = 4.0
+omni_range = 5.0
+
+[node name="Label3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 0)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+render_priority = 10
+outline_render_priority = 9
+modulate = Color(1, 0.88, 0.25, 1)
+outline_modulate = Color(0.35, 0.18, 0, 1)
+text = "NIVEAU SUPÉRIEUR !"
+font_size = 72
+outline_size = 18

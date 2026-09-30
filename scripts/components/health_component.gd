@@ -52,6 +52,19 @@ func take_damage(amount: int, source: Node = null) -> bool:
 	return true
 
 
+## Change le maximum (montée de niveau…). `refill` remet la vie au maximum.
+func set_max_hp(value: int, refill: bool) -> void:
+	max_hp = maxi(value, 1)
+	hp = max_hp if refill else mini(hp, max_hp)
+	health_changed.emit(hp, max_hp)
+
+
+## Fixe directement la vie (chargement d'une sauvegarde).
+func set_hp(value: int) -> void:
+	hp = clampi(value, 1, max_hp)
+	health_changed.emit(hp, max_hp)
+
+
 func heal(amount: int) -> void:
 	if is_dead() or amount <= 0:
 		return

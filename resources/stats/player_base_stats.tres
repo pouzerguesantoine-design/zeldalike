@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PlayerStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player_stats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+level = 1
+xp = 0
+max_level = 50
+max_hp = 30
+max_stamina = 100.0
+force = 2
+defense = 1
+speed = 10
+hp_per_level = 5
+stamina_per_level = 10.0
+force_per_level = 2
+defense_per_level = 1
+speed_per_level = 1
+reference_speed = 10
+move_bonus_per_speed_point = 0.02

@@ -51,6 +51,17 @@ func try_consume(cost: float) -> bool:
 	return true
 
 
+## Change le maximum (montée de niveau…). `refill` remplit la jauge et annule l'épuisement.
+func set_max_stamina(value: float, refill: bool) -> void:
+	max_stamina = maxf(value, 1.0)
+	if refill:
+		_regen_wait = 0.0
+		if is_exhausted:
+			is_exhausted = false
+			recovered.emit()
+	_set_stamina(max_stamina if refill else minf(stamina, max_stamina))
+
+
 func _set_stamina(value: float) -> void:
 	stamina = clampf(value, 0.0, max_stamina)
 	stamina_changed.emit(stamina, max_stamina)

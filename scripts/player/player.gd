@@ -5,7 +5,10 @@ extends CharacterBody3D
 ## sauter, rouler…) sont prises par les états de la StateMachine
 ## (scripts/player/states/).
 
+const LEVEL_UP_EFFECT := preload("res://scene/player/level_up_effect.tscn")
+
 @export_group("Déplacement")
+## Vitesses de base, multipliées par la stat Vitesse (voir get_walk_speed()).
 @export var walk_speed: float = 5.0
 @export var run_speed: float = 9.0
 ## Vitesse de marche quand l'endurance est épuisée.
@@ -45,6 +48,8 @@ var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _time_since_on_floor: float = 0.0
 var _jump_buffer_left: float = 0.0
 var _jumped_since_on_floor: bool = false
+## Effet « NIVEAU SUPÉRIEUR ! » en cours d'affichage (null sinon).
+var level_up_effect: LevelUpEffect
 
 @onready var model: Node3D = $Model
 ## Pivot visuel au centre du corps : on le fait tourner pour la roulade, la chute…
@@ -61,6 +66,11 @@ var _jumped_since_on_floor: bool = false
 func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
+	apply_stats(true)
+	GameState.stats_changed.connect(apply_stats.bind(false))
+	GameState.saving.connect(_on_game_saving)
+	GameState.loaded.connect(_on_game_loaded)
+	EventBus.level_up.connect(_on_level_up)
 
 
 func _physics_process(delta: float) -> void:
@@ -112,9 +122,21 @@ func move_horizontally(direction: Vector3, speed: float, delta: float) -> void:
 	velocity.z = horizontal.y
 
 
+func get_walk_speed() -> float:
+	return walk_speed * GameState.player_stats.get_move_speed_multiplier()
+
+
+func get_run_speed() -> float:
+	return run_speed * GameState.player_stats.get_move_speed_multiplier()
+
+
+func get_exhausted_speed() -> float:
+	return exhausted_speed * GameState.player_stats.get_move_speed_multiplier()
+
+
 ## Vitesse horizontale à conserver en l'air (garde l'élan d'un sprint).
 func get_air_speed() -> float:
-	return maxf(walk_speed, Vector2(velocity.x, velocity.z).length())
+	return maxf(get_walk_speed(), Vector2(velocity.x, velocity.z).length())
 
 
 # --- Orientation -------------------------------------------------------------
@@ -175,6 +197,37 @@ func try_consume_jump() -> bool:
 		_jumped_since_on_floor = true
 		return true
 	return false
+
+
+# --- Statistiques et niveaux -------------------------------------------------
+
+## Reporte les stats de GameState sur les composants. `refill` remet vie et endurance au max.
+func apply_stats(refill: bool) -> void:
+	var stats := GameState.player_stats
+	health.set_max_hp(stats.max_hp, refill)
+	stamina.set_max_stamina(stats.max_stamina, refill)
+
+
+func _on_level_up(new_level: int) -> void:
+	if health.is_dead():
+		return
+	apply_stats(true)
+	# Un seul effet à la fois : s'il reste celui d'un niveau précédent, il est remplacé.
+	if is_instance_valid(level_up_effect):
+		level_up_effect.queue_free()
+	level_up_effect = LEVEL_UP_EFFECT.instantiate() as LevelUpEffect
+	level_up_effect.level = new_level
+	add_child(level_up_effect)
+
+
+func _on_game_saving() -> void:
+	GameState.data["player"] = {"hp": health.hp}
+
+
+func _on_game_loaded() -> void:
+	var saved: Dictionary = GameState.data.get("player", {})
+	if saved.has("hp"):
+		health.set_hp(int(saved["hp"]))
 
 
 # --- Dégâts ------------------------------------------------------------------
