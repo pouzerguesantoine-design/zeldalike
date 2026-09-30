@@ -1,6 +1,6 @@
 extends Node
-## État persistant de la partie (autoload « GameState ») : stats du joueur, et plus tard
-## inventaire / équipement (jalons 3 et 6). Sauvegarde JSON dans user://.
+## État persistant de la partie (autoload « GameState ») : stats du joueur, équipement
+## (et inventaire au jalon 6). Sauvegarde JSON dans user://.
 ##
 ## Sauvegarde : `saving` est émis juste avant l'écriture pour que chaque système range
 ## son état dans `data` ; `loaded` est émis après la lecture pour qu'il le relise.
@@ -11,19 +11,35 @@ signal saving
 signal loaded
 ## Les stats du joueur ont changé (XP gagnée, chargement, nouvelle partie).
 signal stats_changed
+## L'arme équipée a changé.
+signal equipment_changed(weapon: WeaponData)
 
 const SAVE_PATH := "user://savegame.json"
 const BASE_PLAYER_STATS: PlayerStats = preload("res://resources/stats/player_base_stats.tres")
-## XP donnée par le raccourci de test F1 (builds de debug uniquement).
+## Toutes les armes (.tres) de ce dossier sont chargées au démarrage.
+const WEAPONS_DIR := "res://resources/weapons/"
+## Arme de départ (comme dans Zelda, on commence avec une arme modeste).
+const DEFAULT_WEAPON_ID := &"wooden_sword"
+
+## Raccourcis de test (builds de debug uniquement).
 const DEBUG_XP_AMOUNT := 50
+const DEBUG_WEAPON_ACTIONS: Dictionary[StringName, StringName] = {
+	&"debug_weapon_1": &"wooden_sword",
+	&"debug_weapon_2": &"knight_sword",
+	&"debug_weapon_3": &"fire_blade",
+}
 
 ## Données sérialisables de la partie, rangées par section ("player", "world"…).
 var data: Dictionary = {}
 ## Stats courantes du joueur (copie de BASE_PLAYER_STATS qui évolue).
 var player_stats: PlayerStats
+## Catalogue des armes, par identifiant.
+var weapons: Dictionary[StringName, WeaponData] = {}
+var equipped_weapon: WeaponData
 
 
 func _ready() -> void:
+	_load_weapon_catalog()
 	new_game()
 
 
@@ -38,12 +54,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		print("[debug] sauvegarde : ", "OK" if save_game() else "échec")
 	elif event.is_action_pressed("debug_load"):
 		print("[debug] chargement : ", "OK" if load_game() else "aucune sauvegarde")
+	else:
+		for action in DEBUG_WEAPON_ACTIONS:
+			if event.is_action_pressed(action) and equip_weapon_by_id(DEBUG_WEAPON_ACTIONS[action]):
+				print("[debug] arme équipée : ", equipped_weapon.display_name)
 
 
 func new_game() -> void:
 	data = {}
 	player_stats = BASE_PLAYER_STATS.duplicate() as PlayerStats
 	stats_changed.emit()
+	equip_weapon_by_id(DEFAULT_WEAPON_ID)
 
 
 ## Donne de l'XP au joueur ; émet EventBus.level_up pour chaque niveau gagné.
@@ -55,6 +76,33 @@ func add_xp(amount: int) -> void:
 	stats_changed.emit()
 
 
+# --- Équipement ----------------------------------------------------------------
+
+func equip_weapon(weapon: WeaponData) -> void:
+	equipped_weapon = weapon
+	equipment_changed.emit(weapon)
+
+
+func equip_weapon_by_id(weapon_id: StringName) -> bool:
+	if not weapons.has(weapon_id):
+		push_error("Arme inconnue : %s" % weapon_id)
+		return false
+	equip_weapon(weapons[weapon_id])
+	return true
+
+
+func _load_weapon_catalog() -> void:
+	# list_directory() fonctionne aussi dans le jeu exporté (noms de fichiers d'origine).
+	for file_name in ResourceLoader.list_directory(WEAPONS_DIR):
+		if not file_name.ends_with(".tres"):
+			continue
+		var weapon := load(WEAPONS_DIR + file_name) as WeaponData
+		if weapon:
+			weapons[weapon.id] = weapon
+
+
+# --- Sauvegarde ----------------------------------------------------------------
+
 func has_save(path: String = SAVE_PATH) -> bool:
 	return FileAccess.file_exists(path)
 
@@ -62,6 +110,7 @@ func has_save(path: String = SAVE_PATH) -> bool:
 func save_game(path: String = SAVE_PATH) -> bool:
 	saving.emit()
 	data["player_stats"] = player_stats.to_dict()
+	data["equipment"] = {"weapon": String(equipped_weapon.id)}
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		push_error("Sauvegarde impossible (%s) : %s" % [path, error_string(FileAccess.get_open_error())])
@@ -80,6 +129,9 @@ func load_game(path: String = SAVE_PATH) -> bool:
 	data = parsed
 	player_stats = BASE_PLAYER_STATS.duplicate() as PlayerStats
 	player_stats.from_dict(data.get("player_stats", {}))
+	var equipment: Dictionary = data.get("equipment", {})
+	if not equip_weapon_by_id(StringName(equipment.get("weapon", DEFAULT_WEAPON_ID))):
+		equip_weapon_by_id(DEFAULT_WEAPON_ID)
 	stats_changed.emit()
 	loaded.emit()
 	return true

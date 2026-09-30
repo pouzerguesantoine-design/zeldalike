@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://scene/player/player.tscn" id="1_player"]
-[ext_resource type="PackedScene" path="res://scene/world/training_dummy.tscn" id="2_dummy"]
+[ext_resource type="PackedScene" path="res://scene/enemies/training_dummy.tscn" id="2_dummy"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
 

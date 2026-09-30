@@ -20,10 +20,14 @@ func try_ground_actions() -> bool:
 		transition_to(&"Dodge")
 		return true
 	if player.combat_input_allowed():
-		if Input.is_action_just_pressed("attack"):
+		# Attaquer coûte de l'endurance : impossible pendant l'épuisement.
+		if Input.is_action_just_pressed("attack") and player.get_weapon() \
+				and player.stamina.try_consume(player.get_weapon().stamina_cost):
 			transition_to(&"Attack")
 			return true
-		if Input.is_action_just_pressed("magic"):
+		# Le sort ne part que si le mana couvre tout son coût.
+		if Input.is_action_just_pressed("magic") and player.spell \
+				and player.mana.can_afford(player.spell.mana_cost):
 			transition_to(&"Magic")
 			return true
 	return false

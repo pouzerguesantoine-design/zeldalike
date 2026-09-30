@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/weapon_data.gd" id="1_weapon"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/knight_sword.svg" id="2_icon"]
+[ext_resource type="PackedScene" path="res://scene/items/weapons/knight_sword.tscn" id="3_model"]
+
+[resource]
+script = ExtResource("1_weapon")
+id = &"knight_sword"
+display_name = "Épée de chevalier"
+description = "Une lame d'acier forgée pour la garde royale. Solide et fiable."
+icon = ExtResource("2_icon")
+model_scene = ExtResource("3_model")
+base_damage = 8.0
+damage_multiplier = 1.2
+damage_type = 0
+combo_multipliers = Array[float]([1.0, 1.25, 1.8])
+critical_chance = 0.1
+knockback = 5.0
+finisher_knockback_multiplier = 1.5
+attack_speed = 1.0
+reach = 1.8
+stamina_cost = 8.0

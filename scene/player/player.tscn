@@ -15,12 +15,24 @@
 [ext_resource type="Script" path="res://scripts/player/states/hurt.gd" id="13_hurt"]
 [ext_resource type="Script" path="res://scripts/player/states/dead.gd" id="14_dead"]
 [ext_resource type="Script" path="res://scripts/player/lock_on_component.gd" id="15_lockon"]
-[ext_resource type="PackedScene" path="res://scene/player/lock_on_marker.tscn" id="16_marker"]
 [ext_resource type="Script" path="res://scripts/player/player_camera.gd" id="17_camera"]
+[ext_resource type="Script" path="res://scripts/components/mana_component.gd" id="18_mana"]
+[ext_resource type="Script" path="res://scripts/components/hitbox.gd" id="19_hitbox"]
+[ext_resource type="Script" path="res://scripts/components/hurtbox.gd" id="20_hurtbox"]
+[ext_resource type="PackedScene" path="res://scene/player/lock_on_marker.tscn" id="16_marker"]
+[ext_resource type="Resource" path="res://resources/spells/energy_ball.tres" id="21_spell"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
 height = 1.8
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hurtbox"]
+radius = 0.45
+height = 1.8
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_weapon"]
+resource_local_to_scene = true
+size = Vector3(1.8, 1.4, 1.5)
 
 [sub_resource type="StandardMaterial3D" id="Mat_blue"]
 albedo_color = Color(0.15, 0.35, 0.9, 1)
@@ -37,18 +49,9 @@ albedo_color = Color(0.95, 0.85, 0.2, 1)
 material = SubResource("Mat_nose")
 size = Vector3(0.2, 0.2, 0.3)
 
-[sub_resource type="StandardMaterial3D" id="Mat_sword"]
-albedo_color = Color(0.85, 0.88, 0.95, 1)
-metallic = 0.6
-roughness = 0.3
-
-[sub_resource type="BoxMesh" id="BoxMesh_sword"]
-material = SubResource("Mat_sword")
-size = Vector3(0.1, 0.06, 1.1)
-
 [sub_resource type="StandardMaterial3D" id="Mat_magic"]
 shading_mode = 0
-albedo_color = Color(0.4, 0.9, 1, 1)
+albedo_color = Color(0.75, 0.55, 1, 1)
 
 [sub_resource type="SphereMesh" id="SphereMesh_magic"]
 material = SubResource("Mat_magic")
@@ -58,10 +61,252 @@ height = 0.36
 [sub_resource type="SphereShape3D" id="SphereShape3D_camera"]
 radius = 0.25
 
+[sub_resource type="Animation" id="Anim_RESET"]
+resource_name = "RESET"
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Model/Visual/WeaponSocket:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(-1, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Model/WeaponHitbox:active")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Model/Visual/MagicOrb:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Model/Visual/MagicOrb:scale")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Anim_attack_1"]
+resource_name = "attack_1"
+length = 0.42
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Model/Visual/WeaponSocket:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.08, 0.2, 0.42),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0, -1.6, 0), Vector3(0, -1.6, 0), Vector3(0, 1.4, 0), Vector3(-0.6, 0.9, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Model/WeaponHitbox:active")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.22),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/2/type = "method"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.24),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"_anim_open_combo_window"
+}]
+}
+
+[sub_resource type="Animation" id="Anim_attack_2"]
+resource_name = "attack_2"
+length = 0.42
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Model/Visual/WeaponSocket:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.08, 0.2, 0.42),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.2, 1.5, 0), Vector3(0.2, 1.5, 0), Vector3(0.2, -1.5, 0), Vector3(-0.6, -1, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Model/WeaponHitbox:active")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.22),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/2/type = "method"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.24),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"_anim_open_combo_window"
+}]
+}
+
+[sub_resource type="Animation" id="Anim_attack_3"]
+resource_name = "attack_3"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Model/Visual/WeaponSocket:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.18, 0.3, 0.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.3, 0, 0), Vector3(1.6, 0, 0), Vector3(-1.3, 0, 0), Vector3(-1.3, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Model/WeaponHitbox:active")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.24, 0.36),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [false, true, false]
+}
+tracks/2/type = "method"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.45),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"_anim_open_combo_window"
+}]
+}
+
+[sub_resource type="Animation" id="Anim_cast"]
+resource_name = "cast"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Model/Visual/MagicOrb:visible")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Model/Visual/MagicOrb:scale")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.25),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0.2, 0.2, 0.2), Vector3(1.3, 1.3, 1.3)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Model/Visual/WeaponSocket:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(-1, 0, 0)]
+}
+tracks/3/type = "method"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath(".")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.25),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"_anim_release_spell"
+}]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_player"]
+_data = {
+&"RESET": SubResource("Anim_RESET"),
+&"attack_1": SubResource("Anim_attack_1"),
+&"attack_2": SubResource("Anim_attack_2"),
+&"attack_3": SubResource("Anim_attack_3"),
+&"cast": SubResource("Anim_cast")
+}
+
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 collision_layer = 2
 collision_mask = 5
 script = ExtResource("1_player")
+spell = ExtResource("21_spell")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -79,10 +324,9 @@ mesh = SubResource("CapsuleMesh_body")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, -0.45)
 mesh = SubResource("BoxMesh_nose")
 
-[node name="Sword" type="MeshInstance3D" parent="Model/Visual"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 0, -0.75)
-visible = false
-mesh = SubResource("BoxMesh_sword")
+[node name="WeaponSocket" type="Node3D" parent="Model/Visual"]
+position = Vector3(0.45, -0.05, -0.15)
+rotation = Vector3(-1, 0, 0)
 
 [node name="MagicOrb" type="MeshInstance3D" parent="Model/Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.15, -0.55)
@@ -90,11 +334,39 @@ visible = false
 cast_shadow = 0
 mesh = SubResource("SphereMesh_magic")
 
+[node name="WeaponHitbox" type="Area3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, -1.05)
+collision_layer = 8
+collision_mask = 4
+script = ExtResource("19_hitbox")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Model/WeaponHitbox"]
+shape = SubResource("BoxShape3D_weapon")
+
+[node name="Hurtbox" type="Area3D" parent="." node_paths=PackedStringArray("health")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("20_hurtbox")
+health = NodePath("../HealthComponent")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("CapsuleShape3D_hurtbox")
+
 [node name="HealthComponent" type="Node" parent="."]
 script = ExtResource("2_health")
 
 [node name="StaminaComponent" type="Node" parent="."]
 script = ExtResource("3_stamina")
+
+[node name="ManaComponent" type="Node" parent="."]
+script = ExtResource("18_mana")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+callback_mode_process = 0
+libraries = {
+&"": SubResource("AnimationLibrary_player")
+}
 
 [node name="StateMachine" type="Node" parent="." node_paths=PackedStringArray("initial_state")]
 script = ExtResource("4_sm")

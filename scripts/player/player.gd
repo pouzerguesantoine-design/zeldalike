@@ -1,11 +1,13 @@
 class_name Player
 extends CharacterBody3D
 ## Joueur. Ce script fournit les « briques » de mouvement (gravité, accélération,
-## orientation, saut avec coyote time et buffer). Les décisions (quand marcher,
-## sauter, rouler…) sont prises par les états de la StateMachine
-## (scripts/player/states/).
+## orientation, saut avec coyote time et buffer) et de combat (préparation des coups,
+## lancer de sort, retour d'impact). Les décisions (quand marcher, sauter, attaquer…)
+## sont prises par les états de la StateMachine (scripts/player/states/).
 
 const LEVEL_UP_EFFECT := preload("res://scene/player/level_up_effect.tscn")
+## Pose de repos de l'arme (pointe vers le bas, devant), identique à l'animation RESET.
+const WEAPON_REST_ROTATION := Vector3(-1.0, 0.0, 0.0)
 
 @export_group("Déplacement")
 ## Vitesses de base, multipliées par la stat Vitesse (voir get_walk_speed()).
@@ -39,27 +41,45 @@ const LEVEL_UP_EFFECT := preload("res://scene/player/level_up_effect.tscn")
 @export var dodge_duration: float = 0.45
 @export var dodge_invincibility: float = 0.35
 
+@export_group("Combat")
+## Sort lancé avec le clic droit.
+@export var spell: SpellData
+## Durée du hit-stop quand un coup porte (secondes réelles).
+@export var hit_stop_duration: float = 0.06
+@export var critical_hit_stop_duration: float = 0.12
+## Intensité du tremblement de caméra à l'impact (0 à 1).
+@export var hit_shake: float = 0.35
+@export var critical_hit_shake: float = 0.6
+
 @export_group("Dégâts reçus")
 @export var hurt_knockback: float = 6.0
 @export var hurt_duration: float = 0.4
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+## Mis à vrai par la piste de méthode des animations d'attaque (fenêtre d'enchaînement).
+var combo_window_open: bool = false
+## Effet « NIVEAU SUPÉRIEUR ! » en cours d'affichage (null sinon).
+var level_up_effect: LevelUpEffect
 
 var _time_since_on_floor: float = 0.0
 var _jump_buffer_left: float = 0.0
 var _jumped_since_on_floor: bool = false
-## Effet « NIVEAU SUPÉRIEUR ! » en cours d'affichage (null sinon).
-var level_up_effect: LevelUpEffect
+var _weapon_model: Node3D
 
 @onready var model: Node3D = $Model
 ## Pivot visuel au centre du corps : on le fait tourner pour la roulade, la chute…
 @onready var visual: Node3D = $Model/Visual
-@onready var sword_visual: Node3D = $Model/Visual/Sword
+## Emplacement de l'arme en main (deviendra un BoneAttachment3D au jalon 5).
+@onready var weapon_socket: Node3D = $Model/Visual/WeaponSocket
+@onready var weapon_hitbox: Hitbox = $Model/WeaponHitbox
 @onready var magic_visual: Node3D = $Model/Visual/MagicOrb
+@onready var hurtbox: Hurtbox = $Hurtbox
+@onready var anim: AnimationPlayer = $AnimationPlayer
 @onready var camera_pivot: PlayerCamera = $CameraPivot
 @onready var state_machine: StateMachine = $StateMachine
 @onready var health: HealthComponent = $HealthComponent
 @onready var stamina: StaminaComponent = $StaminaComponent
+@onready var mana: ManaComponent = $ManaComponent
 @onready var lock_on: LockOnComponent = $LockOnComponent
 
 
@@ -67,10 +87,13 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	apply_stats(true)
+	equip_weapon_visual(GameState.equipped_weapon)
 	GameState.stats_changed.connect(apply_stats.bind(false))
+	GameState.equipment_changed.connect(equip_weapon_visual)
 	GameState.saving.connect(_on_game_saving)
 	GameState.loaded.connect(_on_game_loaded)
 	EventBus.level_up.connect(_on_level_up)
+	EventBus.damage_dealt.connect(_on_damage_dealt)
 
 
 func _physics_process(delta: float) -> void:
@@ -92,10 +115,10 @@ func get_move_direction() -> Vector3:
 	return Basis(Vector3.UP, camera_pivot.get_yaw()) * Vector3(input.x, 0.0, input.y)
 
 
-## Attaque et magie ne partent que si la souris est capturée
-## (le clic qui recapture la souris ne doit pas déclencher d'attaque).
+## Attaque et magie ne partent pas quand la souris est libérée (Échap),
+## ni sur le clic qui la recapture.
 func combat_input_allowed() -> bool:
-	return Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	return camera_pivot.accepts_combat_clicks()
 
 
 # --- Mouvement ---------------------------------------------------------------
@@ -199,13 +222,103 @@ func try_consume_jump() -> bool:
 	return false
 
 
+# --- Armes et combat -------------------------------------------------------------
+
+func get_weapon() -> WeaponData:
+	return GameState.equipped_weapon
+
+
+## Place le modèle de l'arme dans la main et règle la portée de la zone de coup.
+func equip_weapon_visual(weapon: WeaponData) -> void:
+	if is_instance_valid(_weapon_model):
+		# Retiré tout de suite (pas seulement à la fin de l'image) pour libérer son nom.
+		weapon_socket.remove_child(_weapon_model)
+		_weapon_model.queue_free()
+		_weapon_model = null
+	if weapon == null:
+		return
+	if weapon.model_scene:
+		_weapon_model = weapon.model_scene.instantiate() as Node3D
+		weapon_socket.add_child(_weapon_model)
+	# La zone de coup démarre à 0,3 m du corps et s'étend sur la portée de l'arme.
+	var shape := weapon_hitbox.get_node(^"CollisionShape3D").get(&"shape") as BoxShape3D
+	shape.size.z = weapon.reach
+	weapon_hitbox.position.z = -(0.3 + weapon.reach / 2.0)
+
+
+## Prépare le DamageInfo du coup n° `combo_index` (tirage du critique compris).
+func prepare_weapon_hit(combo_index: int) -> void:
+	var weapon := get_weapon()
+	var info := DamageInfo.new()
+	info.is_critical = randf() < weapon.critical_chance
+	info.raw_amount = DamageCalculator.compute_offense(
+		weapon.base_damage, weapon.damage_multiplier, GameState.player_stats.force,
+		weapon.get_combo_multiplier(combo_index), info.is_critical)
+	info.damage_type = weapon.damage_type
+	info.knockback = weapon.knockback
+	if combo_index == weapon.get_combo_length() - 1:
+		info.knockback *= weapon.finisher_knockback_multiplier
+	info.source = self
+	weapon_hitbox.damage_info = info
+	combo_window_open = false
+
+
+## Remet l'arme et la magie au repos (fin ou interruption d'une attaque / d'un sort).
+func reset_combat_pose() -> void:
+	anim.stop()
+	weapon_hitbox.active = false
+	combo_window_open = false
+	weapon_socket.rotation = WEAPON_REST_ROTATION
+	magic_visual.visible = false
+	magic_visual.scale = Vector3.ONE
+
+
+## Appelé par la piste de méthode des animations attack_N.
+func _anim_open_combo_window() -> void:
+	combo_window_open = true
+
+
+## Appelé par la piste de méthode de l'animation « cast » : la boule d'énergie part.
+func _anim_release_spell() -> void:
+	if spell == null or not mana.try_consume(spell.mana_cost):
+		return
+	var info := DamageInfo.new()
+	info.raw_amount = DamageCalculator.compute_offense(
+		spell.base_damage, spell.damage_multiplier, GameState.player_stats.force, 1.0, false)
+	info.damage_type = spell.damage_type
+	info.knockback = spell.knockback
+	info.source = self
+	var target := lock_on.target if lock_on.has_target() else null
+	var origin := magic_visual.global_position
+	var direction := get_forward()
+	if target:
+		direction = lock_on.get_target_point() - origin
+	var projectile := spell.projectile_scene.instantiate() as Projectile
+	projectile.setup(info, spell, direction, target)
+	get_parent().add_child(projectile)
+	projectile.global_position = origin
+	projectile.reset_physics_interpolation()
+
+
+## Retour d'impact quand un de nos coups porte : hit-stop + tremblement de caméra.
+## (Le flash blanc et le recul sont gérés côté cible.)
+func _on_damage_dealt(_target: Node, info: DamageInfo) -> void:
+	if info.source != self:
+		return
+	HitStop.freeze(get_tree(), critical_hit_stop_duration if info.is_critical else hit_stop_duration)
+	camera_pivot.shake(critical_hit_shake if info.is_critical else hit_shake)
+
+
 # --- Statistiques et niveaux -------------------------------------------------
 
-## Reporte les stats de GameState sur les composants. `refill` remet vie et endurance au max.
+## Reporte les stats de GameState sur les composants. `refill` remet vie, endurance
+## et mana au maximum.
 func apply_stats(refill: bool) -> void:
 	var stats := GameState.player_stats
 	health.set_max_hp(stats.max_hp, refill)
 	stamina.set_max_stamina(stats.max_stamina, refill)
+	mana.set_max_mana(stats.max_mana, refill)
+	hurtbox.defense = stats.defense
 
 
 func _on_level_up(new_level: int) -> void:
@@ -221,13 +334,15 @@ func _on_level_up(new_level: int) -> void:
 
 
 func _on_game_saving() -> void:
-	GameState.data["player"] = {"hp": health.hp}
+	GameState.data["player"] = {"hp": health.hp, "mana": mana.mana}
 
 
 func _on_game_loaded() -> void:
 	var saved: Dictionary = GameState.data.get("player", {})
 	if saved.has("hp"):
 		health.set_hp(int(saved["hp"]))
+	if saved.has("mana"):
+		mana.set_mana(float(saved["mana"]))
 
 
 # --- Dégâts ------------------------------------------------------------------

@@ -13,6 +13,7 @@ extends Resource
 @export_group("Caractéristiques")
 @export var max_hp: int = 30
 @export var max_stamina: float = 100.0
+@export var max_mana: float = 50.0
 ## Force : s'ajoute aux dégâts de l'arme (voir DamageCalculator).
 @export var force: int = 2
 ## Défense : chaque point retire 0,5 aux dégâts reçus.
@@ -23,6 +24,7 @@ extends Resource
 @export_group("Gain par niveau")
 @export var hp_per_level: int = 5
 @export var stamina_per_level: float = 10.0
+@export var mana_per_level: float = 5.0
 @export var force_per_level: int = 2
 @export var defense_per_level: int = 1
 @export var speed_per_level: int = 1
@@ -34,7 +36,7 @@ extends Resource
 @export var move_bonus_per_speed_point: float = 0.02
 
 ## Champs écrits dans la sauvegarde (les réglages de progression restent dans le .tres).
-const SAVED_FIELDS: Array[StringName] = [&"level", &"xp", &"max_hp", &"max_stamina", &"force", &"defense", &"speed"]
+const SAVED_FIELDS: Array[StringName] = [&"level", &"xp", &"max_hp", &"max_stamina", &"max_mana", &"force", &"defense", &"speed"]
 
 
 ## XP nécessaire pour passer au niveau suivant : 100 × niveau^1,5.
@@ -71,6 +73,7 @@ func _level_up() -> void:
 	level += 1
 	max_hp += hp_per_level
 	max_stamina += stamina_per_level
+	max_mana += mana_per_level
 	force += force_per_level
 	defense += defense_per_level
 	speed += speed_per_level

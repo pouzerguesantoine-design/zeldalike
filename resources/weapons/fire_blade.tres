@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/weapon_data.gd" id="1_weapon"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/fire_blade.svg" id="2_icon"]
+[ext_resource type="PackedScene" path="res://scene/items/weapons/fire_blade.tscn" id="3_model"]
+
+[resource]
+script = ExtResource("1_weapon")
+id = &"fire_blade"
+display_name = "Lame de feu"
+description = "Une lame ardente qui brûle ce qu'elle touche. Redoutable contre les créatures du froid."
+icon = ExtResource("2_icon")
+model_scene = ExtResource("3_model")
+base_damage = 7.0
+damage_multiplier = 1.3
+damage_type = 1
+combo_multipliers = Array[float]([1.0, 1.3, 1.9])
+critical_chance = 0.12
+knockback = 4.5
+finisher_knockback_multiplier = 1.5
+attack_speed = 0.95
+reach = 1.7
+stamina_cost = 10.0

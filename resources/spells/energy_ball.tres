@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SpellData" format=3]
+
+[ext_resource type="Script" path="res://scripts/items/spell_data.gd" id="1_spell"]
+[ext_resource type="Texture2D" path="res://assets/textures/icons/energy_ball.svg" id="2_icon"]
+[ext_resource type="PackedScene" path="res://scene/projectiles/energy_ball.tscn" id="3_projectile"]
+
+[resource]
+script = ExtResource("1_spell")
+id = &"energy_ball"
+display_name = "Boule d'énergie"
+description = "Une sphère de magie pure qui file vers la cible verrouillée."
+icon = ExtResource("2_icon")
+projectile_scene = ExtResource("3_projectile")
+mana_cost = 10.0
+base_damage = 6.0
+damage_multiplier = 1.0
+damage_type = 4
+knockback = 3.0
+projectile_speed = 14.0
+homing_turn_speed = 5.0
+lifetime = 2.5

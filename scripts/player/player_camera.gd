@@ -22,9 +22,21 @@ extends Node3D
 @export var lock_on_pitch_degrees: float = -18.0
 @export var lock_on_smoothing: float = 8.0
 
+@export_group("Tremblement")
+## Décalage maximal de la caméra au plus fort du tremblement (m).
+@export var shake_max_offset: float = 0.18
+## Vitesse à laquelle le tremblement s'éteint (par seconde).
+@export var shake_decay: float = 4.0
+
 ## Orientation visée ; la rotation réelle la rattrape avec lissage.
 var _target_yaw: float = 0.0
 var _target_pitch: float = 0.0
+## Intensité courante du tremblement (0 à 1).
+var _trauma: float = 0.0
+## Vrai après Échap, jusqu'au clic qui recapture la souris.
+var _mouse_released: bool = false
+## Image physique du clic de recapture (ce clic ne doit pas attaquer).
+var _recapture_frame: int = -10
 
 @onready var player: Player = get_parent() as Player
 @onready var spring_arm: SpringArm3D = $SpringArm3D
@@ -54,10 +66,23 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("pause"):
 		# Échap libère la souris (le menu pause viendra au jalon 7).
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	elif event is InputEventMouseButton and event.is_pressed() and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		_mouse_released = true
+	elif event is InputEventMouseButton and event.is_pressed() and _mouse_released:
 		# Un clic dans la fenêtre recapture la souris.
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		_mouse_released = false
+		_recapture_frame = Engine.get_physics_frames()
 		get_viewport().set_input_as_handled()
+
+
+func _process(delta: float) -> void:
+	# Tremblement : décalage aléatoire proportionnel au carré de l'intensité.
+	if _trauma <= 0.0:
+		return
+	_trauma = maxf(_trauma - shake_decay * delta, 0.0)
+	var strength := _trauma * _trauma * shake_max_offset
+	camera.h_offset = randf_range(-1.0, 1.0) * strength
+	camera.v_offset = randf_range(-1.0, 1.0) * strength
 
 
 func _physics_process(delta: float) -> void:
@@ -84,6 +109,20 @@ func get_yaw() -> float:
 ## Direction « avant » de la caméra, à plat.
 func get_flat_forward() -> Vector3:
 	return Vector3(-sin(rotation.y), 0.0, -cos(rotation.y))
+
+
+## Ajoute du tremblement (0 à 1, cumulable).
+func shake(amount: float) -> void:
+	_trauma = clampf(_trauma + amount, 0.0, 1.0)
+
+
+func is_shaking() -> bool:
+	return _trauma > 0.0
+
+
+## Les clics servent au combat sauf souris libérée ou clic de recapture.
+func accepts_combat_clicks() -> bool:
+	return not _mouse_released and Engine.get_physics_frames() > _recapture_frame + 1
 
 
 ## Replace doucement la caméra derrière le joueur (Tab sans cible, comme le Z-targeting).
