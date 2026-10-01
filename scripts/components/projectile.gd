@@ -11,6 +11,8 @@ var direction: Vector3 = Vector3.FORWARD
 var target: Node3D
 var damage_info: DamageInfo
 
+const BURST_FX := preload("res://scene/fx/magic_burst.tscn")
+
 @onready var hitbox: Hitbox = $Hitbox
 
 
@@ -50,7 +52,8 @@ func _aim_point() -> Vector3:
 
 
 func _explode() -> void:
-	# Les particules d'impact arriveront au jalon 8.
+	FxBurst.spawn(self, BURST_FX, global_position)
+	Sfx.play(self, &"magic_hit", global_position)
 	set_physics_process(false)
 	hitbox.active = false
 	queue_free()

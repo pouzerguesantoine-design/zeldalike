@@ -29,6 +29,7 @@ func save() -> void:
 	if player and player.health.is_dead():
 		return
 	if GameState.save_game():
+		Sfx.play(self, &"save_game")
 		message_label.text = "Partie sauvegardée."
 		load_button.disabled = false
 	else:

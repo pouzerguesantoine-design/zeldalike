@@ -26,6 +26,7 @@ func _process(delta: float) -> void:
 func _on_interacted(player: Player) -> void:
 	player.apply_stats(true)
 	var saved := GameState.save_game()
+	Sfx.play(self, &"save_game")
 	var message := "Partie sauvegardée" if saved else "La sauvegarde a échoué"
 	FloatingText.spawn(get_tree(), message, global_position + Vector3.UP * 2.6, Color(0.6, 0.95, 1.0))
 	var tween := create_tween()

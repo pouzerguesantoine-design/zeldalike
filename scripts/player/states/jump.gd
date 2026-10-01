@@ -8,6 +8,7 @@ func enter(_msg: Dictionary) -> void:
 	player.velocity.y = player.jump_velocity
 	_air_speed = player.get_air_speed()
 	player.play_body_animation(&"jump", true)
+	Sfx.play(player, &"jump", player.global_position)
 
 
 func physics_update(delta: float) -> void:

@@ -7,7 +7,7 @@ extends Resource
 @export var display_name: String
 @export_multiline var description: String
 @export var icon: Texture2D
-## Modèle 3D tenu en main (.glb au jalon 5 ; scène en primitives en attendant).
+## Modèle 3D tenu en main (scène qui instancie le .glb Blender).
 ## Convention : la poignée à l'origine, la lame vers -Z.
 @export var model_scene: PackedScene
 

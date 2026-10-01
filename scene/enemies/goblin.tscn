@@ -95,6 +95,7 @@ _data = {
 [node name="Goblin" instance=ExtResource("1_base")]
 stats = ExtResource("2_stats")
 loot_table = ExtResource("3_loot")
+hurt_sound = &"goblin_hurt"
 detection_range = 11.0
 view_half_angle = 75.0
 eye_height = 1.4

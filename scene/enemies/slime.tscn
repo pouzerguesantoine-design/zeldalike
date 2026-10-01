@@ -93,6 +93,7 @@ _data = {
 [node name="Slime" instance=ExtResource("1_base")]
 stats = ExtResource("2_stats")
 loot_table = ExtResource("3_loot")
+hurt_sound = &"slime_hurt"
 detection_range = 7.0
 view_half_angle = 80.0
 eye_height = 0.5

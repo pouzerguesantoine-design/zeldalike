@@ -14,6 +14,8 @@ signal closed
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
+	get_viewport().gui_focus_changed.connect(func(_control: Control) -> void:
+		if visible: Sfx.play(self, &"ui_move"))
 
 
 func is_open() -> bool:
@@ -27,6 +29,7 @@ func open() -> void:
 	if pauses_game:
 		get_tree().paused = true
 	EventBus.game_menu_toggled.emit(true)
+	Sfx.play(self, &"ui_open")
 	_on_opened()
 	opened.emit()
 
@@ -38,6 +41,7 @@ func close() -> void:
 	if pauses_game:
 		get_tree().paused = false
 	EventBus.game_menu_toggled.emit(false)
+	Sfx.play(self, &"ui_close")
 	closed.emit()
 
 

@@ -1,0 +1,258 @@
+[gd_resource type="Resource" script_class="SoundLibrary" format=3]
+
+[ext_resource type="Script" path="res://scripts/audio/sound_library.gd" id="1_library"]
+[ext_resource type="Script" path="res://scripts/audio/sound_effect.gd" id="2_effect"]
+[ext_resource type="AudioStream" path="res://assets/audio/footstep.wav" id="s0_footstep"]
+[ext_resource type="AudioStream" path="res://assets/audio/sword_swing.wav" id="s1_sword_swing"]
+[ext_resource type="AudioStream" path="res://assets/audio/hit.wav" id="s2_hit"]
+[ext_resource type="AudioStream" path="res://assets/audio/hit_critical.wav" id="s3_hit_critical"]
+[ext_resource type="AudioStream" path="res://assets/audio/player_hurt.wav" id="s4_player_hurt"]
+[ext_resource type="AudioStream" path="res://assets/audio/slime_hurt.wav" id="s5_slime_hurt"]
+[ext_resource type="AudioStream" path="res://assets/audio/goblin_hurt.wav" id="s6_goblin_hurt"]
+[ext_resource type="AudioStream" path="res://assets/audio/enemy_death.wav" id="s7_enemy_death"]
+[ext_resource type="AudioStream" path="res://assets/audio/enemy_alert.wav" id="s8_enemy_alert"]
+[ext_resource type="AudioStream" path="res://assets/audio/pickup_rupee.wav" id="s9_pickup_rupee"]
+[ext_resource type="AudioStream" path="res://assets/audio/pickup_item.wav" id="s10_pickup_item"]
+[ext_resource type="AudioStream" path="res://assets/audio/pickup_heart.wav" id="s11_pickup_heart"]
+[ext_resource type="AudioStream" path="res://assets/audio/chest_open.wav" id="s12_chest_open"]
+[ext_resource type="AudioStream" path="res://assets/audio/door_open.wav" id="s13_door_open"]
+[ext_resource type="AudioStream" path="res://assets/audio/door_locked.wav" id="s14_door_locked"]
+[ext_resource type="AudioStream" path="res://assets/audio/level_up.wav" id="s15_level_up"]
+[ext_resource type="AudioStream" path="res://assets/audio/save_game.wav" id="s16_save_game"]
+[ext_resource type="AudioStream" path="res://assets/audio/magic_cast.wav" id="s17_magic_cast"]
+[ext_resource type="AudioStream" path="res://assets/audio/magic_hit.wav" id="s18_magic_hit"]
+[ext_resource type="AudioStream" path="res://assets/audio/jump.wav" id="s19_jump"]
+[ext_resource type="AudioStream" path="res://assets/audio/roll.wav" id="s20_roll"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui_move.wav" id="s21_ui_move"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui_confirm.wav" id="s22_ui_confirm"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui_open.wav" id="s23_ui_open"]
+[ext_resource type="AudioStream" path="res://assets/audio/ui_close.wav" id="s24_ui_close"]
+
+[sub_resource type="Resource" id="Effect_footstep"]
+script = ExtResource("2_effect")
+id = &"footstep"
+stream = ExtResource("s0_footstep")
+volume_db = -14.0
+pitch_variation = 0.15
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_sword_swing"]
+script = ExtResource("2_effect")
+id = &"sword_swing"
+stream = ExtResource("s1_sword_swing")
+volume_db = -6.0
+pitch_variation = 0.08
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_hit"]
+script = ExtResource("2_effect")
+id = &"hit"
+stream = ExtResource("s2_hit")
+volume_db = -3.0
+pitch_variation = 0.1
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_hit_critical"]
+script = ExtResource("2_effect")
+id = &"hit_critical"
+stream = ExtResource("s3_hit_critical")
+volume_db = -1.0
+pitch_variation = 0.04
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_player_hurt"]
+script = ExtResource("2_effect")
+id = &"player_hurt"
+stream = ExtResource("s4_player_hurt")
+volume_db = -4.0
+pitch_variation = 0.05
+positional = false
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_slime_hurt"]
+script = ExtResource("2_effect")
+id = &"slime_hurt"
+stream = ExtResource("s5_slime_hurt")
+volume_db = -5.0
+pitch_variation = 0.12
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_goblin_hurt"]
+script = ExtResource("2_effect")
+id = &"goblin_hurt"
+stream = ExtResource("s6_goblin_hurt")
+volume_db = -5.0
+pitch_variation = 0.1
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_enemy_death"]
+script = ExtResource("2_effect")
+id = &"enemy_death"
+stream = ExtResource("s7_enemy_death")
+volume_db = -4.0
+pitch_variation = 0.08
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_enemy_alert"]
+script = ExtResource("2_effect")
+id = &"enemy_alert"
+stream = ExtResource("s8_enemy_alert")
+volume_db = -8.0
+pitch_variation = 0.03
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_pickup_rupee"]
+script = ExtResource("2_effect")
+id = &"pickup_rupee"
+stream = ExtResource("s9_pickup_rupee")
+volume_db = -7.0
+pitch_variation = 0.04
+positional = false
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_pickup_item"]
+script = ExtResource("2_effect")
+id = &"pickup_item"
+stream = ExtResource("s10_pickup_item")
+volume_db = -6.0
+pitch_variation = 0.0
+positional = false
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_pickup_heart"]
+script = ExtResource("2_effect")
+id = &"pickup_heart"
+stream = ExtResource("s11_pickup_heart")
+volume_db = -6.0
+pitch_variation = 0.0
+positional = false
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_chest_open"]
+script = ExtResource("2_effect")
+id = &"chest_open"
+stream = ExtResource("s12_chest_open")
+volume_db = -4.0
+pitch_variation = 0.0
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_door_open"]
+script = ExtResource("2_effect")
+id = &"door_open"
+stream = ExtResource("s13_door_open")
+volume_db = -5.0
+pitch_variation = 0.03
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_door_locked"]
+script = ExtResource("2_effect")
+id = &"door_locked"
+stream = ExtResource("s14_door_locked")
+volume_db = -7.0
+pitch_variation = 0.0
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_level_up"]
+script = ExtResource("2_effect")
+id = &"level_up"
+stream = ExtResource("s15_level_up")
+volume_db = -3.0
+pitch_variation = 0.0
+positional = false
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_save_game"]
+script = ExtResource("2_effect")
+id = &"save_game"
+stream = ExtResource("s16_save_game")
+volume_db = -5.0
+pitch_variation = 0.0
+positional = false
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_magic_cast"]
+script = ExtResource("2_effect")
+id = &"magic_cast"
+stream = ExtResource("s17_magic_cast")
+volume_db = -6.0
+pitch_variation = 0.06
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_magic_hit"]
+script = ExtResource("2_effect")
+id = &"magic_hit"
+stream = ExtResource("s18_magic_hit")
+volume_db = -5.0
+pitch_variation = 0.08
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_jump"]
+script = ExtResource("2_effect")
+id = &"jump"
+stream = ExtResource("s19_jump")
+volume_db = -12.0
+pitch_variation = 0.06
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_roll"]
+script = ExtResource("2_effect")
+id = &"roll"
+stream = ExtResource("s20_roll")
+volume_db = -9.0
+pitch_variation = 0.08
+positional = true
+bus = &"SFX"
+
+[sub_resource type="Resource" id="Effect_ui_move"]
+script = ExtResource("2_effect")
+id = &"ui_move"
+stream = ExtResource("s21_ui_move")
+volume_db = -10.0
+pitch_variation = 0.0
+positional = false
+bus = &"UI"
+
+[sub_resource type="Resource" id="Effect_ui_confirm"]
+script = ExtResource("2_effect")
+id = &"ui_confirm"
+stream = ExtResource("s22_ui_confirm")
+volume_db = -7.0
+pitch_variation = 0.0
+positional = false
+bus = &"UI"
+
+[sub_resource type="Resource" id="Effect_ui_open"]
+script = ExtResource("2_effect")
+id = &"ui_open"
+stream = ExtResource("s23_ui_open")
+volume_db = -8.0
+pitch_variation = 0.0
+positional = false
+bus = &"UI"
+
+[sub_resource type="Resource" id="Effect_ui_close"]
+script = ExtResource("2_effect")
+id = &"ui_close"
+stream = ExtResource("s24_ui_close")
+volume_db = -8.0
+pitch_variation = 0.0
+positional = false
+bus = &"UI"
+
+[resource]
+script = ExtResource("1_library")
+effects = Array[ExtResource("2_effect")]([SubResource("Effect_footstep"), SubResource("Effect_sword_swing"), SubResource("Effect_hit"), SubResource("Effect_hit_critical"), SubResource("Effect_player_hurt"), SubResource("Effect_slime_hurt"), SubResource("Effect_goblin_hurt"), SubResource("Effect_enemy_death"), SubResource("Effect_enemy_alert"), SubResource("Effect_pickup_rupee"), SubResource("Effect_pickup_item"), SubResource("Effect_pickup_heart"), SubResource("Effect_chest_open"), SubResource("Effect_door_open"), SubResource("Effect_door_locked"), SubResource("Effect_level_up"), SubResource("Effect_save_game"), SubResource("Effect_magic_cast"), SubResource("Effect_magic_hit"), SubResource("Effect_jump"), SubResource("Effect_roll"), SubResource("Effect_ui_move"), SubResource("Effect_ui_confirm"), SubResource("Effect_ui_open"), SubResource("Effect_ui_close")])

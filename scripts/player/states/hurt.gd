@@ -16,6 +16,7 @@ func enter(msg: Dictionary) -> void:
 			away = offset.normalized()
 	player.velocity = away * player.hurt_knockback + Vector3.UP * 2.5
 	player.play_body_animation(&"hurt", true)
+	Sfx.play(player, &"player_hurt")
 
 
 func physics_update(delta: float) -> void:

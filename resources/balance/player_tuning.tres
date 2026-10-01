@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="PlayerTuning" format=3]
+
+[ext_resource type="Script" path="res://scripts/player/player_tuning.gd" id="1_tuning"]
+
+[resource]
+script = ExtResource("1_tuning")
+walk_speed = 5.0
+run_speed = 9.0
+exhausted_speed = 2.5
+ground_acceleration = 40.0
+ground_deceleration = 50.0
+air_acceleration = 12.0
+rotation_speed = 12.0
+jump_velocity = 7.0
+fall_gravity_multiplier = 1.6
+jump_cut_ratio = 0.5
+coyote_time = 0.12
+jump_buffer_time = 0.15
+ground_grace_time = 0.1
+sprint_stamina_per_second = 20.0
+dodge_stamina_cost = 20.0
+stamina_regen_per_second = 30.0
+stamina_regen_delay = 0.8
+exhaustion_recovery_ratio = 1.0
+mana_regen_per_second = 4.0
+dodge_speed = 11.0
+dodge_duration = 0.45
+dodge_invincibility = 0.35
+hit_stop_duration = 0.06
+critical_hit_stop_duration = 0.12
+hit_shake = 0.35
+critical_hit_shake = 0.6
+hurt_knockback = 6.0
+hurt_duration = 0.4
+invincibility_after_hit = 0.6

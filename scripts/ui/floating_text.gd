@@ -9,14 +9,14 @@ const SCENE_PATH := "res://scene/ui/floating_text.tscn"
 @export var duration: float = 1.4
 
 
-## Crée un texte flottant dans la scène courante, à `position`.
-static func spawn(tree: SceneTree, message: String, position: Vector3, color: Color = Color.WHITE) -> FloatingText:
+## Crée un texte flottant dans la scène courante, au point `at`.
+static func spawn(tree: SceneTree, message: String, at: Vector3, color: Color = Color.WHITE) -> FloatingText:
 	var label := (load(SCENE_PATH) as PackedScene).instantiate() as FloatingText
 	label.text = message
 	label.modulate = color
 	var parent := tree.current_scene if tree.current_scene else tree.root
 	parent.add_child(label)
-	label.global_position = position
+	label.global_position = at
 	return label
 
 

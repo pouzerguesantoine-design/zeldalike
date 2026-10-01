@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tools/godot/capture_screenshots.gd" id="1_capture"]
+
+[node name="CaptureScreenshots" type="Node"]
+script = ExtResource("1_capture")
+timeout_seconds = 120.0

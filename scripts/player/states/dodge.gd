@@ -24,6 +24,8 @@ func enter(_msg: Dictionary) -> void:
 		backwards = _direction.dot(player.get_forward()) < -0.3
 	player.health.set_invincible(player.dodge_invincibility)
 	player.play_body_animation(&"roll_back" if backwards else &"roll", true)
+	Sfx.play(player, &"roll", player.global_position)
+	player.puff_dust()
 
 
 func physics_update(delta: float) -> void:

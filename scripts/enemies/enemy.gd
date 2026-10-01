@@ -6,10 +6,13 @@ extends CharacterBody3D
 ## Patrol → Chase → Attack, Return (retour au point d'apparition), Hurt, Dead.
 
 const PICKUP_SCENE := preload("res://scene/items/pickup.tscn")
+const DEATH_FX := preload("res://scene/fx/death_puff.tscn")
 ## Durée du fondu entre idle et walk (secondes).
 const LOCOMOTION_BLEND := 0.15
 
 @export var stats: EnemyStats
+## Son joué quand l'ennemi est touché (voir resources/audio/sound_library.tres).
+@export var hurt_sound: StringName = &"slime_hurt"
 @export var loot_table: LootTable
 ## Points de patrouille (dans l'ordre, en boucle). Vide : errance autour du point d'apparition.
 @export var patrol_points: Array[Marker3D] = []
@@ -97,6 +100,7 @@ func _ready() -> void:
 	health.damaged.connect(_on_damaged)
 	health.died.connect(func() -> void: state_machine.transition_to(&"Dead"))
 	hurtbox.hit_received.connect(_on_hit_received)
+	state_machine.state_changed.connect(_on_state_changed)
 	telegraph.visible = false
 
 
@@ -276,6 +280,18 @@ func reset_attack() -> void:
 func _on_damaged(_amount: int, _source: Node) -> void:
 	if not health.is_dead():
 		state_machine.transition_to(&"Hurt")
+
+
+## Cri d'alerte quand l'ennemi repère le joueur (passage en poursuite depuis sa patrouille).
+func _on_state_changed(from_state: StringName, to_state: StringName) -> void:
+	if to_state == &"Chase" and from_state in [&"Patrol", &"Return"]:
+		Sfx.play(self, &"enemy_alert", global_position + Vector3.UP * 1.5)
+
+
+## Fumée et son de disparition (appelé par l'état Dead).
+func play_death_effects() -> void:
+	FxBurst.spawn(self, DEATH_FX, global_position + Vector3.UP * 0.6)
+	Sfx.play(self, &"enemy_death", global_position)
 
 
 ## Recul à l'opposé de l'attaquant.

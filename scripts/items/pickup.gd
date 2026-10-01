@@ -22,6 +22,8 @@ extends Area3D
 @export var magnet_speed: float = 7.0
 @export var magnet_acceleration: float = 25.0
 
+const SPARKLE_FX := preload("res://scene/fx/pickup_sparkle.tscn")
+
 var _age: float = 0.0
 var _base_height: float
 var _magnet_velocity: float = 0.0
@@ -83,5 +85,12 @@ func _collect(player: Player) -> void:
 	else:
 		GameState.add_item(item, quantity)
 	var color := Color(0.55, 1.0, 0.55) if item.type == ItemData.ItemType.MONNAIE else Color(1.0, 0.95, 0.7)
+	var sound := &"pickup_item"
+	if item.type == ItemData.ItemType.MONNAIE:
+		sound = &"pickup_rupee"
+	elif item.use_on_pickup:
+		sound = &"pickup_heart"
+	Sfx.play(self, sound)
+	FxBurst.spawn(self, SPARKLE_FX, global_position + Vector3.UP * 0.5)
 	FloatingText.spawn(get_tree(), "+%d %s" % [quantity, item.display_name], player.global_position + Vector3.UP * 2.2, color)
 	queue_free()

@@ -59,9 +59,25 @@ var world_flags: Dictionary[StringName, bool] = {}
 
 
 func _ready() -> void:
+	# La fermeture de la fenêtre passe par quit_game() (voir _notification).
+	get_tree().auto_accept_quit = false
 	weapons.assign(_load_catalog(WEAPONS_DIR))
 	items.assign(_load_catalog(ITEMS_DIR))
 	new_game()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		quit_game()
+
+
+## Quitte le jeu proprement : les sons en cours sont coupés et le serveur audio a le
+## temps de les libérer (sinon Godot signale des fuites à la fermeture).
+func quit_game() -> void:
+	get_tree().paused = true
+	Sfx.stop_all(get_tree())
+	await get_tree().create_timer(0.25, true, false, true).timeout
+	get_tree().quit()
 
 
 func _unhandled_input(event: InputEvent) -> void:

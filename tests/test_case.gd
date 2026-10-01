@@ -16,14 +16,19 @@ func _ready() -> void:
 	_run_and_quit.call_deferred()
 
 
-## À redéfinir : le contenu du test.
+## À redéfinir : le contenu du test (une coroutine : elle peut attendre des images).
 func run() -> void:
-	pass
+	await get_tree().process_frame
 
 
 func _run_and_quit() -> void:
 	await run()
 	print("\n%s : %d échec(s)" % ["SUCCÈS" if failures == 0 else "ÉCHEC", failures])
+	# Jeu figé (plus de nouveaux sons) puis sons coupés avant de quitter
+	# (sinon fuite signalée à la fermeture).
+	get_tree().paused = true
+	Sfx.stop_all(get_tree())
+	await get_tree().create_timer(0.25, true, false, true).timeout
 	get_tree().quit(1 if failures > 0 else 0)
 
 

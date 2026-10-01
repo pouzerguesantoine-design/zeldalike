@@ -6,55 +6,103 @@ extends CharacterBody3D
 ## sont prises par les états de la StateMachine (scripts/player/states/).
 
 const LEVEL_UP_EFFECT := preload("res://scene/player/level_up_effect.tscn")
+const DUST_FX := preload("res://scene/fx/dust_puff.tscn")
+## Distance parcourue entre deux bruits de pas (m).
+const STRIDE_LENGTH := 1.7
 
-@export_group("Déplacement")
-## Vitesses de base, multipliées par la stat Vitesse (voir get_walk_speed()).
-@export var walk_speed: float = 5.0
-@export var run_speed: float = 9.0
-## Vitesse de marche quand l'endurance est épuisée.
-@export var exhausted_speed: float = 2.5
-@export var ground_acceleration: float = 40.0
-@export var ground_deceleration: float = 50.0
-@export var air_acceleration: float = 12.0
-## Vitesse de rotation du modèle vers la direction visée.
-@export var rotation_speed: float = 12.0
-
-@export_group("Saut")
-@export var jump_velocity: float = 7.0
-## Gravité renforcée à la descente : sauts plus nerveux.
-@export var fall_gravity_multiplier: float = 1.6
-## Vitesse verticale conservée si on relâche Espace pendant la montée (saut court).
-@export_range(0.0, 1.0) var jump_cut_ratio: float = 0.5
-## Délai pendant lequel on peut encore sauter après avoir quitté un rebord.
-@export var coyote_time: float = 0.12
-## Un appui sur Espace juste avant d'atterrir est mémorisé pendant ce délai.
-@export var jump_buffer_time: float = 0.15
-## Tolérance avant de considérer qu'on a quitté le sol : sur un terrain en triangles,
-## is_on_floor() peut clignoter une image ; sans cette marge, on passerait en chute.
-@export var ground_grace_time: float = 0.1
-
-@export_group("Endurance")
-@export var sprint_stamina_per_second: float = 20.0
-@export var dodge_stamina_cost: float = 20.0
-
-@export_group("Roulade")
-@export var dodge_speed: float = 11.0
-@export var dodge_duration: float = 0.45
-@export var dodge_invincibility: float = 0.35
-
-@export_group("Combat")
+## Réglages de jeu (vitesses, saut, roulade, endurance, retour d'impact…).
+@export var tuning: PlayerTuning = preload("res://resources/balance/player_tuning.tres")
 ## Sort lancé avec le clic droit.
 @export var spell: SpellData
-## Durée du hit-stop quand un coup porte (secondes réelles).
-@export var hit_stop_duration: float = 0.06
-@export var critical_hit_stop_duration: float = 0.12
-## Intensité du tremblement de caméra à l'impact (0 à 1).
-@export var hit_shake: float = 0.35
-@export var critical_hit_shake: float = 0.6
 
-@export_group("Dégâts reçus")
-@export var hurt_knockback: float = 6.0
-@export var hurt_duration: float = 0.4
+# Raccourcis de lecture vers `tuning` (les états lisent player.walk_speed, etc.).
+var walk_speed: float:
+	get:
+		return tuning.walk_speed
+var run_speed: float:
+	get:
+		return tuning.run_speed
+var exhausted_speed: float:
+	get:
+		return tuning.exhausted_speed
+var ground_acceleration: float:
+	get:
+		return tuning.ground_acceleration
+var ground_deceleration: float:
+	get:
+		return tuning.ground_deceleration
+var air_acceleration: float:
+	get:
+		return tuning.air_acceleration
+var rotation_speed: float:
+	get:
+		return tuning.rotation_speed
+var jump_velocity: float:
+	get:
+		return tuning.jump_velocity
+var fall_gravity_multiplier: float:
+	get:
+		return tuning.fall_gravity_multiplier
+var jump_cut_ratio: float:
+	get:
+		return tuning.jump_cut_ratio
+var coyote_time: float:
+	get:
+		return tuning.coyote_time
+var jump_buffer_time: float:
+	get:
+		return tuning.jump_buffer_time
+var ground_grace_time: float:
+	get:
+		return tuning.ground_grace_time
+var sprint_stamina_per_second: float:
+	get:
+		return tuning.sprint_stamina_per_second
+var dodge_stamina_cost: float:
+	get:
+		return tuning.dodge_stamina_cost
+var stamina_regen_per_second: float:
+	get:
+		return tuning.stamina_regen_per_second
+var stamina_regen_delay: float:
+	get:
+		return tuning.stamina_regen_delay
+var exhaustion_recovery_ratio: float:
+	get:
+		return tuning.exhaustion_recovery_ratio
+var mana_regen_per_second: float:
+	get:
+		return tuning.mana_regen_per_second
+var dodge_speed: float:
+	get:
+		return tuning.dodge_speed
+var dodge_duration: float:
+	get:
+		return tuning.dodge_duration
+var dodge_invincibility: float:
+	get:
+		return tuning.dodge_invincibility
+var hit_stop_duration: float:
+	get:
+		return tuning.hit_stop_duration
+var critical_hit_stop_duration: float:
+	get:
+		return tuning.critical_hit_stop_duration
+var hit_shake: float:
+	get:
+		return tuning.hit_shake
+var critical_hit_shake: float:
+	get:
+		return tuning.critical_hit_shake
+var hurt_knockback: float:
+	get:
+		return tuning.hurt_knockback
+var hurt_duration: float:
+	get:
+		return tuning.hurt_duration
+var invincibility_after_hit: float:
+	get:
+		return tuning.invincibility_after_hit
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 ## Mis à vrai par la piste de méthode des animations d'attaque (fenêtre d'enchaînement).
@@ -66,6 +114,7 @@ var _time_since_on_floor: float = 0.0
 var _jump_buffer_left: float = 0.0
 var _jumped_since_on_floor: bool = false
 var _weapon_model: Node3D
+var _stride_left: float = STRIDE_LENGTH
 
 @onready var model: Node3D = $Model
 ## Modèle Blender (assets/models/player.glb) : squelette + animations du corps.
@@ -91,6 +140,11 @@ var _weapon_model: Node3D
 
 
 func _ready() -> void:
+	stamina.regen_per_second = tuning.stamina_regen_per_second
+	stamina.regen_delay = tuning.stamina_regen_delay
+	stamina.exhaustion_recovery_ratio = tuning.exhaustion_recovery_ratio
+	mana.regen_per_second = tuning.mana_regen_per_second
+	health.invincibility_after_hit = tuning.invincibility_after_hit
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	apply_stats(true)
@@ -178,8 +232,19 @@ func play_body_animation(state: StringName, restart: bool = false) -> void:
 ## (ramenée aux vitesses de base, pour que la stat Vitesse ne décale pas le mélange).
 func animate_locomotion() -> void:
 	play_body_animation(&"locomotion")
-	var speed := Vector2(velocity.x, velocity.z).length() / GameState.player_stats.get_move_speed_multiplier()
+	var ground_speed := Vector2(velocity.x, velocity.z).length()
+	var speed := ground_speed / GameState.player_stats.get_move_speed_multiplier()
 	anim_tree.set(&"parameters/locomotion/blend_position", speed)
+	if is_on_floor() and ground_speed > 1.0:
+		_stride_left -= ground_speed * get_physics_process_delta_time()
+		if _stride_left <= 0.0:
+			_stride_left = STRIDE_LENGTH
+			Sfx.play(self, &"footstep", global_position)
+
+
+## Petit nuage de poussière aux pieds (roulade, atterrissage…).
+func puff_dust() -> void:
+	FxBurst.spawn(self, DUST_FX, global_position + Vector3.UP * 0.1)
 
 
 ## Vitesse d'une animation d'attaque du corps (= vitesse d'attaque de l'arme).
@@ -327,6 +392,7 @@ func _anim_release_spell() -> void:
 	var direction := get_forward()
 	if target:
 		direction = lock_on.get_target_point() - origin
+	Sfx.play(self, &"magic_cast", origin)
 	var projectile := spell.projectile_scene.instantiate() as Projectile
 	projectile.setup(info, spell, direction, target)
 	get_parent().add_child(projectile)
@@ -365,6 +431,7 @@ func _on_level_up(new_level: int) -> void:
 	level_up_effect = LEVEL_UP_EFFECT.instantiate() as LevelUpEffect
 	level_up_effect.level = new_level
 	add_child(level_up_effect)
+	Sfx.play(self, &"level_up")
 
 
 func _on_game_saving() -> void:

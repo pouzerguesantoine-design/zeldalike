@@ -9,6 +9,7 @@ func enter(_msg: Dictionary) -> void:
 	_elapsed = 0.0
 	enemy.reset_attack()
 	enemy.play_action(&"hurt")
+	Sfx.play(enemy, enemy.hurt_sound, enemy.global_position)
 
 
 func physics_update(delta: float) -> void:

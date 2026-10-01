@@ -16,6 +16,8 @@ Godot (installé par winget, raccourcis Bureau + menu Démarrer) :
 "$G" --headless --path . --import                            # (ré)importer après ajout de fichiers
 "$G" --headless --path . --quit-after 300                    # lancer le jeu (l'île) sans fenêtre : aucune erreur attendue
 "$G" --headless --path . res://tools/godot/bake_navmesh.tscn # recuire la navigation de l'île après un changement de décor
+"$G" --path . --resolution 1280x720 res://tools/godot/capture_screenshots.tscn -- docs/screenshots/ prefixe_  # captures (même cadrage)
+python tools/audio/generate_sounds.py                        # régénérer les sons (assets/audio/)
 "$G" --headless --path . res://tests/test_jalon2.tscn        # tests auto d'un jalon (code de sortie 0 = OK)
 "$G" --path . res://tests/test_jalon2.tscn -- capture.png    # idem + capture d'écran du rendu
 ```
@@ -58,6 +60,11 @@ tests/                scènes de test automatiques (à exclure de l'export, jalo
 tools/blender/        scripts Python qui construisent les modèles dans Blender (ignoré par Godot)
 tools/godot/          scripts Godot de génération (AnimationTree, cuisson de la navigation)
 tools/level/          générateur initial de l'île (écrase island.tscn : à ne plus relancer)
+tools/audio/          générateur des sons (synthèse, CC0)
+assets/audio/         sons .wav générés ; resources/audio/ : bibliothèque de sons
+resources/balance/    réglages de jeu (PlayerTuning)
+scene/fx/             effets de particules (FxBurst)
+docs/screenshots/     captures du README (ignoré par Godot)
 ```
 
 Les dossiers encore vides contiennent un `.gitkeep`.
@@ -464,6 +471,25 @@ Player (CharacterBody3D, player.gd, groupe "player")
   (`restore_player_on_spawn`) ; sans sauvegarde → nouvelle partie. Les ennemis réapparaissent.
 - Sauvegarde du joueur : `data["player"] = {hp, mana, position, yaw}`.
 
+## Sons, particules, équilibrage (jalon 8)
+
+- **Sons** : générés par `tools/audio/generate_sounds.py` (synthèse pure Python, CC0, aucun
+  fichier externe) → `assets/audio/*.wav`. Catalogue `resources/audio/sound_library.tres`
+  (`SoundLibrary` → `SoundEffect` : `id`, `stream`, `volume_db`, `pitch_variation`, `positional`, `bus`).
+  Jouer : `Sfx.play(nœud, &"id", position_optionnelle)` (lecteur créé à la volée, libéré à la fin,
+  joue pendant la pause). Bus `SFX` et `UI` (`default_bus_layout.tres`).
+- **Avant de quitter** : `GameState.quit_game()` (coupe les sons puis attend 0,25 s ; la fermeture
+  de la fenêtre y passe aussi : `auto_accept_quit = false`). Sinon Godot signale des fuites.
+- Sons branchés : pas (tous les 1,7 m au sol), épée, impact / critique, douleur du joueur, cris des
+  ennemis (`Enemy.hurt_sound`), alerte quand un ennemi repère le joueur, mort, ramassages, coffre,
+  porte, porte verrouillée, niveau, sauvegarde, sort, impact magique, saut, roulade, menus.
+- **Particules** : `scene/fx/*.tscn` (CPUParticles3D one-shot + `FxBurst`) :
+  `FxBurst.spawn(nœud, SCENE, position, teinte)` → étincelles d'impact (couleur du type de dégâts),
+  poussière de roulade, fumée de mort, scintillement de ramassage, éclat magique.
+- **Équilibrage** : `resources/balance/player_tuning.tres` (`PlayerTuning`) regroupe tous les
+  réglages du joueur ; `player.gd` n'a plus que des raccourcis de lecture (`player.walk_speed` →
+  `tuning.walk_speed`). Tableau complet « où régler quoi » dans le README.
+
 ## Pièges connus
 
 - **NavigationAgent3D** : le maillage est cuit environ 0,5 m au-dessus du sol ; avec
@@ -474,6 +500,9 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Dictionnaires typés (`Dictionary[StringName, X]`) : remplir avec `.assign()` depuis un dictionnaire
   non typé.
 - Changer `monitoring`/`monitorable` pendant un rappel physique : utiliser `set_deferred()`.
+- Tests : `test_case` coupe les sons et attend 0,25 s avant de quitter (sinon fuites signalées).
+- Vérifier les avertissements GDScript hors éditeur : passer temporairement les
+  `debug/gdscript/warnings/*` à 2 (erreur) dans project.godot, lancer jeu + tests, puis revenir.
 - `ProgressBar` arrondit à `step` (1 par défaut) : mettre `step = 0.0` pour les jauges du HUD.
 - Focus clavier des menus : `grab_focus()` immédiat après reconstruction d'une liste (un
   `grab_focus.call_deferred()` peut écraser une sélection faite entre-temps).
@@ -501,5 +530,6 @@ Player (CharacterBody3D, player.gd, groupe "player")
 | 5 | Pipeline Blender → Godot | fait |
 | 6 | Monde, objets et interactions | fait |
 | 7 | HUD et interface | fait |
-| 8 | Finitions | à faire |
+| 8 | Finitions (sons, particules, équilibrage, nettoyage, README) | fait |
+| 8.5 | Amélioration visuelle : cel-shading + contours, SDFGI/VoxelGI, cycle jour/nuit, environnement (ACES, glow, SSAO, brouillard volumétrique, étalonnage chaud), herbe au vent (MultiMesh), feuillage qui ondule, eau stylisée avec écume, modèles Blender enrichis, traînées d'épée, particules plus riches, réglages graphiques bas / moyen / haut ; captures avant / après (`docs/screenshots/avant_*.png` prises à la fin du jalon 8) | à faire |
 | 9 | Export en exécutable + Release GitHub | à faire |

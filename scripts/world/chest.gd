@@ -30,6 +30,7 @@ func open() -> void:
 	_set_open(true)
 	GameState.set_flag(_flag())
 	anim.play(&"open")
+	Sfx.play(self, &"chest_open", global_position)
 	await get_tree().create_timer(loot_delay).timeout
 	_spawn_loot()
 

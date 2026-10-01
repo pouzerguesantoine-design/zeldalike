@@ -1,7 +1,7 @@
 class_name InteractionPrompt
 extends CanvasLayer
 ## Message en bas de l'écran quand un objet est activable : « Ouvrir [E] ».
-## (Sera intégré au HUD du jalon 7.)
+## Fait partie de l'interface de jeu (scene/ui/game_ui.tscn).
 
 ## Touche affichée (E est à la même place en AZERTY et en QWERTY).
 @export var key_label: String = "E"
@@ -19,9 +19,9 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	# Mis à jour à chaque image : le texte peut changer (ex. clé ramassée).
-	var show := is_instance_valid(_target) and _target.available
-	panel.visible = show
-	if show:
+	var has_target := is_instance_valid(_target) and _target.available
+	panel.visible = has_target
+	if has_target:
 		label.text = "%s  [%s]" % [_target.get_prompt(), key_label]
 
 

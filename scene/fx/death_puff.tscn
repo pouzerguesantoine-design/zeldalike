@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/components/fx_burst.gd" id="1_fx"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_particle"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+billboard_mode = 3
+billboard_keep_scale = true
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="Mesh_particle"]
+material = SubResource("Mat_particle")
+size = Vector2(0.5, 0.5)
+
+[sub_resource type="Curve" id="Curve_scale"]
+_data = [Vector2(0, 0.6), 0.0, 0.0, 0, 0, Vector2(1, 1.4), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_fade"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[node name="DeathPuff" type="Node3D"]
+script = ExtResource("1_fx")
+
+[node name="Particles" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 26
+lifetime = 0.9
+one_shot = true
+explosiveness = 0.95
+mesh = SubResource("Mesh_particle")
+emission_shape = 1
+emission_sphere_radius = 0.4
+direction = Vector3(0, 1, 0)
+spread = 70.0
+gravity = Vector3(0, 1.2, 0)
+initial_velocity_min = 1.0
+initial_velocity_max = 3.0
+damping_min = 1.5
+damping_max = 1.5
+scale_amount_curve = SubResource("Curve_scale")
+color = Color(0.72, 0.62, 0.85, 0.85)
+color_ramp = SubResource("Gradient_fade")

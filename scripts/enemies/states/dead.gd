@@ -15,6 +15,7 @@ func enter(_msg: Dictionary) -> void:
 	enemy.reset_attack()
 	enemy.disable_collisions()
 	enemy.play_action(&"death")
+	enemy.play_death_effects()
 	GameState.add_xp(enemy.stats.xp_reward)
 	EventBus.enemy_died.emit(enemy)
 	enemy.drop_loot()

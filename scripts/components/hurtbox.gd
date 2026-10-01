@@ -7,6 +7,7 @@ extends Area3D
 ## Calques : joueur → calque 2 (player) ; ennemis → calque 3 (enemies). Masque vide.
 
 const DAMAGE_NUMBER := preload("res://scene/ui/damage_number.tscn")
+const IMPACT_FX := preload("res://scene/fx/impact_sparks.tscn")
 
 ## Coup encaissé (info.amount contient les dégâts finaux).
 signal hit_received(info: DamageInfo)
@@ -34,6 +35,9 @@ func receive_hit(info: DamageInfo) -> bool:
 		return false
 	hit_received.emit(info)
 	EventBus.damage_dealt.emit(get_parent(), info)
+	var impact_color: Color = DamageNumber.TYPE_COLORS.get(info.damage_type, Color.WHITE)
+	FxBurst.spawn(self, IMPACT_FX, global_position + Vector3.UP * 0.3, DamageNumber.CRITICAL_COLOR if info.is_critical else impact_color)
+	Sfx.play(self, &"hit_critical" if info.is_critical else &"hit", global_position)
 	if show_damage_numbers:
 		_spawn_damage_number(info)
 	return true

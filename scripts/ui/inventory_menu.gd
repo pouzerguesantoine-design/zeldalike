@@ -183,6 +183,7 @@ func use_selected() -> void:
 		return
 	player.health.heal(item.heal_amount)
 	GameState.remove_item(item.id, 1)
+	Sfx.play(self, &"pickup_heart")
 	_message("Vous récupérez %d PV." % item.heal_amount)
 	refresh()
 	_focus_after_change()
@@ -333,6 +334,7 @@ func _equip(item: ItemData) -> void:
 	if item == null or item.weapon == null:
 		return
 	GameState.equip_weapon(item.weapon)
+	Sfx.play(self, &"ui_confirm")
 	_message("%s équipée." % item.display_name)
 	refresh()
 	_focus_after_change()

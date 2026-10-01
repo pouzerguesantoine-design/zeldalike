@@ -11,7 +11,7 @@ extends Node
 signal damage_dealt(target: Node, info: DamageInfo)
 ## Un ennemi vient de mourir.
 signal enemy_died(enemy: Node)
-## Le joueur a ramassé `quantity` exemplaires de `item` (ItemData, jalon 6).
+## Le joueur a ramassé `quantity` exemplaires de `item` (ItemData).
 signal item_picked_up(item: Resource, quantity: int)
 ## Le joueur passe au niveau `new_level`.
 signal level_up(new_level: int)

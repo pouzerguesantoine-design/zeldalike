@@ -1,6 +1,6 @@
 extends PlayerState
 ## Mort : le personnage s'effondre (animation « death »), plus aucune commande.
-## La réapparition (écran de mort) arrive au jalon 7.
+## L'écran de mort (DeathScreen) propose ensuite de réapparaître.
 
 
 func enter(_msg: Dictionary) -> void:

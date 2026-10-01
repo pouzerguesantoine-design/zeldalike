@@ -36,6 +36,7 @@ func _on_interacted(_player: Player) -> void:
 	var message_position := global_position + Vector3.UP * 2.4
 	if required_key:
 		if GameState.get_item_count(required_key.id) <= 0:
+			Sfx.play(self, &"door_locked", global_position)
 			FloatingText.spawn(get_tree(), "Il faut une %s !" % required_key.display_name.to_lower(),
 				message_position, Color(1.0, 0.55, 0.45))
 			return
@@ -51,6 +52,7 @@ func open() -> void:
 	_set_open(true)
 	GameState.set_flag(_flag())
 	anim.play(&"open")
+	Sfx.play(self, &"door_open", global_position)
 
 
 func _set_open(value: bool) -> void:

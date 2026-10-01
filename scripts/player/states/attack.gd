@@ -70,3 +70,4 @@ func _start_hit() -> void:
 	player.anim.play(ANIMATIONS[_combo_index], -1, speed)
 	player.set_attack_animation_speed(ANIMATIONS[_combo_index], speed)
 	player.play_body_animation(ANIMATIONS[_combo_index], true)
+	Sfx.play(player, &"sword_swing", player.global_position + Vector3.UP)

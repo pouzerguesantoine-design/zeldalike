@@ -31,8 +31,9 @@ func _ready() -> void:
 	viewport.add_child(island)
 	new_game_button.pressed.connect(func() -> void: GameState.start_new_game())
 	continue_button.pressed.connect(func() -> void: GameState.continue_game())
-	quit_button.pressed.connect(func() -> void: get_tree().quit())
+	quit_button.pressed.connect(func() -> void: GameState.quit_game())
 	continue_button.disabled = not GameState.has_save()
+	get_viewport().gui_focus_changed.connect(func(_control: Control) -> void: Sfx.play(self, &"ui_move"))
 	(continue_button if not continue_button.disabled else new_game_button).grab_focus.call_deferred()
 
 
