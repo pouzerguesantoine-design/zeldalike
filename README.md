@@ -1,6 +1,6 @@
 # ZeldaLike — L'Île aux trois trésors
 
-Action-RPG 3D façon Zelda (Breath of the Wild / Link's Awakening), en low-poly coloré,
+Action-RPG 3D façon Zelda (Breath of the Wild / Link's Awakening), en low-poly coloré et cel-shadé,
 réalisé avec **Godot 4.7** (GDScript) et **Blender 5.2** (modèles générés par scripts).
 
 ![Le village](docs/screenshots/village.png)
@@ -39,6 +39,9 @@ Clavier AZERTY et QWERTY (touches physiques) + souris.
 | Inventaire | **I** (Tab : onglet Équipement ; flèches + Entrée ou souris) |
 | Pause | **Échap** |
 
+**Graphismes** : choix **Bas / Moyen / Haut** dans l'écran titre et le menu pause (enregistré ;
+Moyen par défaut). Bas convient aux petites cartes graphiques.
+
 ## Fonctionnalités
 
 - **Déplacements** : caméra orbitale anti-collision, sprint, saut avec *coyote time* et
@@ -54,6 +57,22 @@ Clavier AZERTY et QWERTY (touches physiques) + souris.
   animés ; objets aspirés vers le joueur ; point de sauvegarde et réapparition.
 - **Interface** : cœurs à la Zelda, jauges, inventaire, pause, écran de mort, écran titre.
 - **Sons** et **particules** sur toutes les actions importantes.
+- **Rendu** façon Wind Waker / BotW : cel-shading avec contours encrés, cycle jour / nuit,
+  herbe et feuillage qui ondulent au vent, eau stylisée avec écume, illumination globale (SDFGI),
+  brouillard volumétrique, traînées d'épée, éclairs d'impact.
+
+## Avant / après l'amélioration visuelle
+
+À gauche la version du jalon 8, à droite la version actuelle (qualité Haut).
+
+![Village](docs/screenshots/comparaison_village.png)
+![Combat](docs/screenshots/comparaison_combat.png)
+![Donjon](docs/screenshots/comparaison_donjon.png)
+![Écran titre](docs/screenshots/comparaison_titre.png)
+
+| La nuit | Qualité Bas |
+|---|---|
+| ![Nuit](docs/screenshots/apres_nuit.png) | ![Qualité Bas](docs/screenshots/apres_village_bas.png) |
 
 ## Lancer le jeu
 

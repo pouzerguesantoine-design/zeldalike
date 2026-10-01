@@ -7,6 +7,7 @@ extends MenuScreen
 @onready var save_button: Button = %SaveButton
 @onready var load_button: Button = %LoadButton
 @onready var quit_button: Button = %QuitButton
+@onready var graphics_option: OptionButton = %GraphicsOption
 @onready var message_label: Label = %MessageLabel
 
 
@@ -16,11 +17,13 @@ func _ready() -> void:
 	save_button.pressed.connect(save)
 	load_button.pressed.connect(func() -> void: GameState.continue_game())
 	quit_button.pressed.connect(func() -> void: GameState.go_to_title())
+	graphics_option.item_selected.connect(func(index: int) -> void: GameState.set_graphics_quality(index))
 
 
 func _on_opened() -> void:
 	message_label.text = ""
 	load_button.disabled = not GameState.has_save()
+	graphics_option.select(GameState.graphics_quality)
 	resume_button.grab_focus.call_deferred()
 
 

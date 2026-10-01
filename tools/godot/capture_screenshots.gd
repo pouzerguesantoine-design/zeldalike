@@ -1,11 +1,14 @@
 extends "res://tests/test_case.gd"
 ## Prend toujours les mêmes captures d'écran (même cadrage) : README et comparaisons
 ## avant / après. Lancer avec rendu (pas en headless) :
-##   godot --path . --resolution 1280x720 res://tools/godot/capture_screenshots.tscn -- docs/screenshots/ prefixe_
-## Produit : <dossier><préfixe>village.png, combat.png, donjon.png, inventaire.png, titre.png
+##   godot --path . --resolution 1280x720 res://tools/godot/capture_screenshots.tscn -- docs/screenshots/ prefixe_ [qualité 0-2]
+## Produit : <dossier><préfixe>village.png, combat.png, donjon.png, inventaire.png, titre.png,
+## nuit.png et village_bas.png (s'il y a un cycle jour/nuit). Heure figée à 10 h ; qualité
+## « Haut » par défaut (le réglage du joueur n'est pas modifié).
 
 var _folder: String = "docs/screenshots/"
 var _prefix: String = ""
+var _quality: int = 2
 
 
 func run() -> void:
@@ -14,6 +17,10 @@ func run() -> void:
 		_folder = args[0]
 	if args.size() >= 2:
 		_prefix = args[1]
+	if args.size() >= 3:
+		_quality = int(args[2])
+	var previous_quality := GameState.graphics_quality
+	GameState.set_graphics_quality(_quality, false)
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://" + _folder))
 	GameState.save_path = "user://capture_save.json"
 	GameState.new_game()
@@ -25,6 +32,10 @@ func run() -> void:
 	add_child(level)
 	var player := level.get_node("Player") as Player
 	var enemies := level.get_node("Enemies")
+	var day_night := level.get_node_or_null("DayNight") as DayNightCycle
+	if day_night:
+		day_night.running = false
+		day_night.set_hour(10.0)
 	await frames(30)
 
 	# 1. Village, vu depuis la plage d'arrivée.
@@ -53,6 +64,19 @@ func run() -> void:
 	await _place(player, Vector3(22, 0.1, -12), 0.0, -0.18)
 	await _shot("donjon")
 
+	# 3 bis. Nuit au village, et le village en qualité « Bas ».
+	if day_night:
+		await _place(player, Vector3(0, 0.1, 30), 0.0, -0.28)
+		day_night.set_hour(22.5)
+		await frames(20)
+		await _shot("nuit")
+		day_night.set_hour(10.0)
+		GameState.set_graphics_quality(GameState.Quality.BAS, false)
+		await frames(40)
+		await _shot("village_bas")
+		GameState.set_graphics_quality(_quality, false)
+		await frames(20)
+
 	# 4. Inventaire (onglet Équipement).
 	await _place(player, Vector3(0, 0.1, 20), 0.0, -0.3)
 	var ui := level.get_node("GameUI") as GameUI
@@ -72,17 +96,20 @@ func run() -> void:
 	title.queue_free()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://capture_save.json"))
 	GameState.save_path = GameState.SAVE_PATH
+	GameState.set_graphics_quality(previous_quality, false)
 
 
 func _place(player: Player, position: Vector3, yaw: float, pitch: float) -> void:
 	teleport(player, position)
 	player.model.rotation.y = yaw
 	player.camera_pivot.snap_to(yaw, pitch)
-	for i in 60:
+	# Laisser la téléportation prendre effet, puis attendre l'atterrissage (pose de repos).
+	await frames(3)
+	for i in 90:
 		await get_tree().physics_frame
-		if player.state_machine.get_state_name() == &"Idle":
+		if player.is_on_floor() and player.state_machine.get_state_name() == &"Idle":
 			break
-	await frames(15)
+	await frames(25)
 
 
 func _shot(shot_name: String) -> void:

@@ -20,10 +20,14 @@ import bpy  # noqa: E402
 
 lp.reset_scene()
 
-bark = lp.material("Ecorce", (0.4, 0.26, 0.14))
-leaves = lp.material("Feuillage", (0.3, 0.62, 0.22))
-leaves_light = lp.material("FeuillageClair", (0.45, 0.74, 0.28))
-pine = lp.material("Sapin", (0.16, 0.45, 0.22))
+P = lp.PALETTE
+bark = lp.material("Ecorce", P["bark"])
+bark_dark = lp.material("EcorceSombre", P["bark_dark"])
+leaves = lp.material("Feuillage", P["leaves"])
+leaves_light = lp.material("FeuillageClair", P["leaves_light"])
+leaves_dark = lp.material("FeuillageSombre", P["leaves_dark"])
+pine = lp.material("Sapin", P["pine"])
+pine_light = lp.material("SapinClair", P["pine_light"])
 rock = lp.material("Roche", (0.56, 0.56, 0.6))
 rock_dark = lp.material("RocheSombre", (0.44, 0.44, 0.49))
 grass = lp.material("Herbe", (0.46, 0.78, 0.3))
@@ -79,22 +83,34 @@ roots = {}
 
 # --------------------------------------------------------------------- arbre feuillu
 r = roots["tree_round"] = new_root("TreeRound")
-mesh("Trunk", r, [("cylinder", (0.22, 1.9, bark), dict(segments=7, radius_top=0.15, location=(0, 0, 0.95)))])
+mesh("Trunk", r, [
+    ("cylinder", (0.22, 1.9, bark), dict(segments=8, radius_top=0.15, location=(0, 0, 0.95))),
+    # Racines et branches
+    ("cylinder", (0.12, 0.5, bark_dark), dict(segments=5, radius_top=0.02, location=(0.25, 0, 0.12), rotation=(0, 70, 0))),
+    ("cylinder", (0.11, 0.45, bark_dark), dict(segments=5, radius_top=0.02, location=(-0.14, 0.2, 0.1), rotation=(-65, 0, -30))),
+    ("cylinder", (0.1, 0.42, bark_dark), dict(segments=5, radius_top=0.02, location=(-0.12, -0.2, 0.1), rotation=(65, 0, 30))),
+    ("cylinder", (0.07, 0.8, bark), dict(segments=5, radius_top=0.03, location=(0.32, 0.05, 1.7), rotation=(0, 45, 0))),
+    ("cylinder", (0.06, 0.7, bark), dict(segments=5, radius_top=0.03, location=(-0.28, -0.1, 1.85), rotation=(15, -40, 0))),
+])
 mesh("Foliage", r, [
     ("ico", (1.0, leaves), dict(subdivisions=1, location=(0, 0, 2.4))),
-    ("ico", (0.75, leaves_light), dict(subdivisions=1, location=(0.55, 0.2, 2.05))),
-    ("ico", (0.7, leaves), dict(subdivisions=1, location=(-0.5, -0.25, 2.15))),
-    ("ico", (0.6, leaves_light), dict(subdivisions=1, location=(0.1, -0.3, 2.95))),
+    ("ico", (0.75, leaves_light), dict(subdivisions=1, location=(0.6, 0.15, 2.1))),
+    ("ico", (0.7, leaves_dark), dict(subdivisions=1, location=(-0.55, -0.2, 2.2))),
+    ("ico", (0.6, leaves_light), dict(subdivisions=1, location=(0.1, -0.35, 2.95))),
+    ("ico", (0.55, leaves), dict(subdivisions=1, location=(-0.2, 0.5, 2.7))),
+    ("ico", (0.5, leaves_dark), dict(subdivisions=1, location=(0.45, -0.45, 2.45))),
+    ("ico", (0.45, leaves_light), dict(subdivisions=1, location=(-0.35, 0.1, 3.15))),
 ])
 col_cylinder("TrunkCollision", r, 0.28, 2.0, (0, 0, 1.0))
 
 # --------------------------------------------------------------------------- sapin
 r = roots["tree_pine"] = new_root("TreePine")
-mesh("Trunk", r, [("cylinder", (0.16, 1.0, bark), dict(segments=6, radius_top=0.12, location=(0, 0, 0.5)))])
+mesh("Trunk", r, [("cylinder", (0.2, 1.0, bark), dict(segments=7, radius_top=0.12, location=(0, 0, 0.5)))])
 mesh("Needles", r, [
-    ("cylinder", (1.1, 1.3, pine), dict(segments=7, radius_top=0.0, location=(0, 0, 1.4))),
-    ("cylinder", (0.85, 1.1, pine), dict(segments=7, radius_top=0.0, location=(0, 0, 2.1))),
-    ("cylinder", (0.6, 0.9, pine), dict(segments=7, radius_top=0.0, location=(0, 0, 2.75))),
+    ("cylinder", (1.2, 1.2, pine), dict(segments=8, radius_top=0.1, location=(0, 0, 1.3))),
+    ("cylinder", (0.98, 1.05, pine_light), dict(segments=8, radius_top=0.08, location=(0, 0, 1.95), rotation=(0, 0, 22))),
+    ("cylinder", (0.76, 0.95, pine), dict(segments=8, radius_top=0.06, location=(0, 0, 2.55))),
+    ("cylinder", (0.52, 0.85, pine_light), dict(segments=8, radius_top=0.0, location=(0, 0, 3.1), rotation=(0, 0, 22))),
 ])
 col_cylinder("TrunkCollision", r, 0.3, 2.0, (0, 0, 1.0))
 

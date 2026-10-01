@@ -87,6 +87,7 @@ var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	_rng.randomize()
+	ToonMaterials.apply(visual)
 	spawn_position = global_position
 	health.set_max_hp(stats.max_hp, true)
 	hurtbox.defense = stats.defense

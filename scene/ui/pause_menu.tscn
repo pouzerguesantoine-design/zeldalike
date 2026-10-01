@@ -33,9 +33,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -210
-offset_top = -210
+offset_top = -240
 offset_right = 210
-offset_bottom = 210
+offset_bottom = 240
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -74,6 +74,29 @@ unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(320, 50)
 text = "Quitter vers le titre"
+
+[node name="GraphicsRow" type="HBoxContainer" parent="Root/Panel/Box"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="GraphicsLabel" type="Label" parent="Root/Panel/Box/GraphicsRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Graphismes"
+
+[node name="GraphicsOption" type="OptionButton" parent="Root/Panel/Box/GraphicsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 44)
+layout_mode = 2
+selected = 1
+item_count = 3
+popup/item_0/text = "Bas"
+popup/item_0/id = 0
+popup/item_1/text = "Moyen"
+popup/item_1/id = 1
+popup/item_2/text = "Haut"
+popup/item_2/id = 2
 
 [node name="MessageLabel" type="Label" parent="Root/Panel/Box"]
 unique_name_in_owner = true

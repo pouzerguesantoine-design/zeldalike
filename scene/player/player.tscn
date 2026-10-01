@@ -23,6 +23,9 @@
 [ext_resource type="Resource" path="res://resources/spells/energy_ball.tres" id="21_spell"]
 [ext_resource type="PackedScene" path="res://assets/models/player.glb" id="22_model"]
 [ext_resource type="Script" path="res://scripts/player/interaction_detector.gd" id="24_interaction"]
+[ext_resource type="Script" path="res://scripts/components/outline_post.gd" id="25_outline"]
+[ext_resource type="Shader" path="res://assets/shaders/outline_post.gdshader" id="26_outline_shader"]
+[ext_resource type="Script" path="res://scripts/player/sword_trail.gd" id="27_trail"]
 [ext_resource type="AnimationNodeStateMachine" path="res://resources/animation/player_animation_tree.tres" id="23_tree"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
@@ -48,6 +51,14 @@ height = 0.28
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_interaction"]
 radius = 1.3
+
+[sub_resource type="ShaderMaterial" id="Material_outline"]
+render_priority = 100
+shader = ExtResource("26_outline_shader")
+
+[sub_resource type="QuadMesh" id="QuadMesh_outline"]
+material = SubResource("Material_outline")
+size = Vector2(2, 2)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_camera"]
 radius = 0.25
@@ -355,3 +366,12 @@ margin = 0.3
 [node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D"]
 current = true
 fov = 70.0
+
+[node name="OutlinePost" type="MeshInstance3D" parent="CameraPivot/SpringArm3D/Camera3D"]
+extra_cull_margin = 16384.0
+cast_shadow = 0
+mesh = SubResource("QuadMesh_outline")
+script = ExtResource("25_outline")
+
+[node name="SwordTrail" type="MeshInstance3D" parent="."]
+script = ExtResource("27_trail")

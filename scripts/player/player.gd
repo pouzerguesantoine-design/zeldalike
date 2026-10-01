@@ -147,6 +147,7 @@ func _ready() -> void:
 	health.invincibility_after_hit = tuning.invincibility_after_hit
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
+	ToonMaterials.apply(body_model)
 	apply_stats(true)
 	_restore_from_save_point()
 	equip_weapon_visual(GameState.equipped_weapon)
@@ -339,6 +340,7 @@ func equip_weapon_visual(weapon: WeaponData) -> void:
 		return
 	if weapon.model_scene:
 		_weapon_model = weapon.model_scene.instantiate() as Node3D
+		ToonMaterials.apply(_weapon_model)
 		weapon_socket.add_child(_weapon_model)
 	# La zone de coup démarre à 0,3 m du corps et s'étend sur la portée de l'arme.
 	var shape := weapon_hitbox.get_node(^"CollisionShape3D").get(&"shape") as BoxShape3D

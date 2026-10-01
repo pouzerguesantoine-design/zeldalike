@@ -16,7 +16,8 @@ Godot (installé par winget, raccourcis Bureau + menu Démarrer) :
 "$G" --headless --path . --import                            # (ré)importer après ajout de fichiers
 "$G" --headless --path . --quit-after 300                    # lancer le jeu (l'île) sans fenêtre : aucune erreur attendue
 "$G" --headless --path . res://tools/godot/bake_navmesh.tscn # recuire la navigation de l'île après un changement de décor
-"$G" --path . --resolution 1280x720 res://tools/godot/capture_screenshots.tscn -- docs/screenshots/ prefixe_  # captures (même cadrage)
+"$G" --path . --resolution 1280x720 res://tools/godot/capture_screenshots.tscn -- docs/screenshots/ prefixe_ [qualité 0-2]  # captures (même cadrage, Haut par défaut)
+"$G" --headless --path . -s res://tools/godot/compare_screenshots.gd  # avant_* + apres_* → comparaison_*.png
 python tools/audio/generate_sounds.py                        # régénérer les sons (assets/audio/)
 "$G" --headless --path . res://tests/test_jalon2.tscn        # tests auto d'un jalon (code de sortie 0 = OK)
 "$G" --path . res://tests/test_jalon2.tscn -- capture.png    # idem + capture d'écran du rendu
@@ -64,6 +65,7 @@ tools/audio/          générateur des sons (synthèse, CC0)
 assets/audio/         sons .wav générés ; resources/audio/ : bibliothèque de sons
 resources/balance/    réglages de jeu (PlayerTuning)
 scene/fx/             effets de particules (FxBurst)
+assets/shaders/       shaders : toon, toon_foliage, outline_post, water, grass (jalon 8.5)
 docs/screenshots/     captures du README (ignoré par Godot)
 ```
 
@@ -490,6 +492,43 @@ Player (CharacterBody3D, player.gd, groupe "player")
   réglages du joueur ; `player.gd` n'a plus que des raccourcis de lecture (`player.walk_speed` →
   `tuning.walk_speed`). Tableau complet « où régler quoi » dans le README.
 
+## Rendu et effets visuels (jalon 8.5)
+
+- **Cel-shading** : `assets/shaders/toon.gdshader` (3 tons nets, ombres teintées de bleu, liseré
+  côté lumière). `ToonMaterials.apply(racine)` convertit à l'exécution les StandardMaterial3D des
+  modèles importés en ShaderMaterial toon (cache partagé ; matériaux transparents = copie en
+  `DIFFUSE_TOON`) ; surfaces nommées `Foliage` / `Needles` → `toon_foliage.gdshader` (ondulent au
+  vent au-dessus de 1,2 m). Appelé par `player.gd` (corps + arme équipée), `enemy.gd`, `level.gd`.
+- **Contours encrés** : `OutlinePost` = quad plein écran sous la caméra du joueur (et de l'écran
+  titre), shader `outline_post.gdshader` (bords de profondeur + normales, estompés de 25 à 70 m).
+  Masqué en qualité Bas.
+- **Environnement** (île, généré par `tools/level/generate_island.py`) : ACES, glow, SSAO, SDFGI,
+  brouillard + brouillard volumétrique léger, étalonnage chaud (GradientTexture1D). Soleil aux ombres
+  douces (`angular_distance`), lune. `WorldVisuals` (script du WorldEnvironment) active / coupe les
+  effets selon la qualité.
+- **Cycle jour / nuit** : `DayNightCycle` (nœud `DayNight`) : une journée = 10 min, début à 9 h 30 ;
+  fait tourner soleil et lune, couleurs du ciel, brouillard et ambiance (nuit / aube / jour).
+  `set_hour(h)`, `is_night()`, `running = false` pour figer (captures, tests).
+- **Herbe** : `GrassField` (nœud `Grass`) : brins en MultiMesh par blocs de 10 m, posés par rayons
+  sur le sol plat (`|y| ≤ 0,05`), hors `excluded_areas` (rivière, donjon) ; reconstruite au changement
+  de qualité. Shader `grass.gdshader` : vent + rafales, écrasement autour du joueur.
+- **Eau** : `water.gdshader` : mer (écume au rivage via la profondeur, vagues, fresnel) et rivière
+  (`river_mode` : courant le long des UV + écume sur les berges).
+- **Effets** : `SwordTrail` (traînée d'épée en ImmediateMesh, couleur du type de dégâts, seulement
+  dans l'état Attack) ; impacts = étincelles + éclair + débris ; fumée de mort + scintillements ;
+  bords de l'écran rouges quand le héros est touché (`HUD.flash_damage()`).
+- **Modèles enrichis** (`tools/blender/`, palette commune `lowpoly.PALETTE`) : héros (bouclier dans
+  le dos, col, sacoche, sourcils, nez, revers), Gobelin (arcade, anneau, mèches, pagne, épaulière),
+  Slime (bulles, bouche, pousse), arbres (racines, branches, 7 touffes), sapins à 4 étages.
+- **Réglages graphiques** Bas / Moyen / Haut (menu pause et écran titre) :
+  `GameState.set_graphics_quality(q, persist = true)` → signal `graphics_quality_changed`, enregistré
+  dans `user://settings.cfg` (**Moyen** par défaut). Bas : pas de GI / SSAO / brouillard volumétrique /
+  contours, résolution 3D 80 %, herbe 0,6 brin/m². Moyen : SSAO, glow, contours, herbe 2,5/m².
+  Haut : + SDFGI, brouillard volumétrique, MSAA 2×, ombres plus douces et lointaines, herbe 5/m².
+- Mesures (1280×720, RTX 5080 portable, sans vsync) : Bas ≈ 900 i/s, Moyen ≈ 650, Haut ≈ 310.
+- Captures : `docs/screenshots/avant_*` (fin du jalon 8), `apres_*`, `comparaison_*` (côte à côte) ;
+  les images du README (`village.png`…) sont celles d'après.
+
 ## Pièges connus
 
 - **NavigationAgent3D** : le maillage est cuit environ 0,5 m au-dessus du sol ; avec
@@ -517,6 +556,14 @@ Player (CharacterBody3D, player.gd, groupe "player")
   le gère. Lire `matrix_world` d'un objet juste créé renvoie l'identité (pas encore évalué).
 - Scripts Godot lancés avec `-s` depuis `tools/` : fonctionnent malgré le `.gdignore`, mais sans
   autoloads (ne pas y utiliser GameState/EventBus).
+- **Shader toon et lumières ponctuelles** : dans `light()`, `ATTENUATION` = ombre portée pour une
+  lumière directionnelle mais baisse avec la distance pour une omni / spot. Séparer les deux avec
+  `LIGHT_IS_DIRECTIONAL`, sinon chaque lampe éclaire toute sa zone d'un ton minimum (rectangles
+  clairs la nuit).
+- **Herbe et contours** : l'herbe est dans la passe transparente (`ALPHA = 1.0`,
+  `depth_draw_never`) pour ne pas écrire la profondeur ; sinon le contour encré cerne chaque brin.
+- Ne pas nommer une fonction `convert` (fonction intégrée de GDScript) → `convert_material`.
+- Valeurs lues dans un `Array` non typé : caster (`float(…)`) pour éviter l'inférence Variant.
 
 ## Jalons
 
@@ -531,5 +578,5 @@ Player (CharacterBody3D, player.gd, groupe "player")
 | 6 | Monde, objets et interactions | fait |
 | 7 | HUD et interface | fait |
 | 8 | Finitions (sons, particules, équilibrage, nettoyage, README) | fait |
-| 8.5 | Amélioration visuelle : cel-shading + contours, SDFGI/VoxelGI, cycle jour/nuit, environnement (ACES, glow, SSAO, brouillard volumétrique, étalonnage chaud), herbe au vent (MultiMesh), feuillage qui ondule, eau stylisée avec écume, modèles Blender enrichis, traînées d'épée, particules plus riches, réglages graphiques bas / moyen / haut ; captures avant / après (`docs/screenshots/avant_*.png` prises à la fin du jalon 8) | à faire |
+| 8.5 | Amélioration visuelle : cel-shading + contours, SDFGI/VoxelGI, cycle jour/nuit, environnement (ACES, glow, SSAO, brouillard volumétrique, étalonnage chaud), herbe au vent (MultiMesh), feuillage qui ondule, eau stylisée avec écume, modèles Blender enrichis, traînées d'épée, particules plus riches, réglages graphiques bas / moyen / haut ; captures avant / après (`docs/screenshots/comparaison_*.png`) | fait |
 | 9 | Export en exécutable + Release GitHub | à faire |

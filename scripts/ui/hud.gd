@@ -45,6 +45,7 @@ var _time: float = 0.0
 @onready var letterbox_top: ColorRect = %LetterboxTop
 @onready var letterbox_bottom: ColorRect = %LetterboxBottom
 @onready var target_label: Label = %TargetLabel
+@onready var damage_vignette: TextureRect = %DamageVignette
 
 
 func _ready() -> void:
@@ -56,6 +57,7 @@ func _ready() -> void:
 	if _player == null:
 		return
 	_player.health.health_changed.connect(_on_health_changed)
+	_player.health.damaged.connect(func(_amount: int, _source: Node) -> void: flash_damage())
 	_player.stamina.stamina_changed.connect(_on_stamina_changed)
 	_player.mana.mana_changed.connect(_on_mana_changed)
 	GameState.stats_changed.connect(_refresh_level)
@@ -129,6 +131,12 @@ func _on_health_changed(hp: int, max_hp: int) -> void:
 		# Coup reçu : les cœurs clignotent en rouge.
 		hearts_box.modulate = Color(1.0, 0.35, 0.35)
 		create_tween().tween_property(hearts_box, "modulate", Color.WHITE, 0.35)
+
+
+## Bords de l'écran qui rougissent un instant quand le héros est touché.
+func flash_damage() -> void:
+	damage_vignette.modulate.a = 1.0
+	create_tween().tween_property(damage_vignette, "modulate:a", 0.0, 0.45).set_ease(Tween.EASE_IN)
 
 
 # --- Endurance et mana ---------------------------------------------------------

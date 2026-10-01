@@ -15,6 +15,14 @@ signal stats_changed
 signal equipment_changed(weapon: WeaponData)
 ## L'inventaire ou le nombre de rubis a changé.
 signal inventory_changed
+## La qualité graphique a changé (0 = Bas, 1 = Moyen, 2 = Haut).
+signal graphics_quality_changed(quality: int)
+
+## Qualité graphique : réglée dans le menu pause ou l'écran titre.
+enum Quality { BAS, MOYEN, HAUT }
+const QUALITY_NAMES: Array[String] = ["Bas", "Moyen", "Haut"]
+## Réglages du joueur (indépendants des sauvegardes de partie).
+const SETTINGS_PATH := "user://settings.cfg"
 
 const SAVE_PATH := "user://savegame.json"
 const LEVEL_SCENE := "res://scene/world/island.tscn"
@@ -56,11 +64,15 @@ var inventory: Dictionary[StringName, int] = {}
 var rupees: int = 0
 ## Drapeaux du monde : coffres ouverts, portes déverrouillées… (« chest:<id> », « door:<id> »).
 var world_flags: Dictionary[StringName, bool] = {}
+## « Moyen » par défaut : le jeu doit tourner sur tous les PC.
+var graphics_quality: int = Quality.MOYEN
 
 
 func _ready() -> void:
 	# La fermeture de la fenêtre passe par quit_game() (voir _notification).
 	get_tree().auto_accept_quit = false
+	_load_settings()
+	_apply_viewport_quality()
 	weapons.assign(_load_catalog(WEAPONS_DIR))
 	items.assign(_load_catalog(ITEMS_DIR))
 	new_game()
@@ -186,6 +198,49 @@ func set_flag(flag: StringName, value: bool = true) -> void:
 
 func has_flag(flag: StringName) -> bool:
 	return world_flags.get(flag, false)
+
+
+# --- Réglages graphiques ---------------------------------------------------------
+
+## Change la qualité graphique. Les niveaux (WorldVisuals, herbe, contours) écoutent
+## `graphics_quality_changed` ; l'anticrénelage et la résolution sont réglés ici.
+func set_graphics_quality(quality: int, persist: bool = true) -> void:
+	graphics_quality = clampi(quality, Quality.BAS, Quality.HAUT)
+	_apply_viewport_quality()
+	if persist:
+		var config := ConfigFile.new()
+		config.set_value("graphismes", "qualite", graphics_quality)
+		config.save(SETTINGS_PATH)
+	graphics_quality_changed.emit(graphics_quality)
+
+
+func _load_settings() -> void:
+	var config := ConfigFile.new()
+	if config.load(SETTINGS_PATH) == OK:
+		graphics_quality = clampi(int(config.get_value("graphismes", "qualite", Quality.MOYEN)), Quality.BAS, Quality.HAUT)
+
+
+func _apply_viewport_quality() -> void:
+	var viewport := get_tree().root
+	match graphics_quality:
+		Quality.BAS:
+			viewport.msaa_3d = Viewport.MSAA_DISABLED
+			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+			viewport.scaling_3d_scale = 0.8
+			RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_HARD)
+			RenderingServer.positional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_HARD)
+		Quality.MOYEN:
+			viewport.msaa_3d = Viewport.MSAA_DISABLED
+			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA
+			viewport.scaling_3d_scale = 1.0
+			RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_LOW)
+			RenderingServer.positional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_LOW)
+		_:
+			viewport.msaa_3d = Viewport.MSAA_2X
+			viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+			viewport.scaling_3d_scale = 1.0
+			RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_HIGH)
+			RenderingServer.positional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_HIGH)
 
 
 # --- Navigation entre les écrans ----------------------------------------------

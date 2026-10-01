@@ -1,7 +1,17 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/title_screen.gd" id="1_title"]
+[ext_resource type="Script" path="res://scripts/components/outline_post.gd" id="3_outline"]
+[ext_resource type="Shader" path="res://assets/shaders/outline_post.gdshader" id="4_outline_shader"]
 [ext_resource type="Theme" path="res://resources/ui/theme.tres" id="theme"]
+
+[sub_resource type="ShaderMaterial" id="Material_outline"]
+render_priority = 100
+shader = ExtResource("4_outline_shader")
+
+[sub_resource type="QuadMesh" id="QuadMesh_outline"]
+material = SubResource("Material_outline")
+size = Vector2(2, 2)
 
 [sub_resource type="Gradient" id="Gradient_side"]
 colors = PackedColorArray(0.02, 0.04, 0.1, 0.85, 0.02, 0.04, 0.1, 0)
@@ -41,6 +51,12 @@ unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 0.8, 0.6, 0, -0.6, 0.8, 0, 24, 46)
 current = true
 fov = 55.0
+
+[node name="OutlinePost" type="MeshInstance3D" parent="Preview/PreviewViewport/PreviewCamera"]
+extra_cull_margin = 16384.0
+cast_shadow = 0
+mesh = SubResource("QuadMesh_outline")
+script = ExtResource("3_outline")
 
 [node name="Shade" type="TextureRect" parent="."]
 layout_mode = 1
@@ -98,6 +114,28 @@ unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(340, 56)
 text = "Quitter"
+
+[node name="GraphicsRow" type="HBoxContainer" parent="Menu"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GraphicsLabel" type="Label" parent="Menu/GraphicsRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Graphismes"
+
+[node name="GraphicsOption" type="OptionButton" parent="Menu/GraphicsRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 44)
+layout_mode = 2
+selected = 1
+item_count = 3
+popup/item_0/text = "Bas"
+popup/item_0/id = 0
+popup/item_1/text = "Moyen"
+popup/item_1/id = 1
+popup/item_2/text = "Haut"
+popup/item_2/id = 2
 
 [node name="Hint" type="Label" parent="Menu"]
 layout_mode = 2

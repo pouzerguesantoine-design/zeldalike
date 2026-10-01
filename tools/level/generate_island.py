@@ -74,6 +74,10 @@ DOOR = res("PackedScene", "res://scene/world/door.tscn")
 GAME_UI = res("PackedScene", "res://scene/ui/game_ui.tscn")
 SAVE_POINT = res("PackedScene", "res://scene/world/save_point.tscn")
 KEY = res("Resource", "res://resources/items/small_key.tres")
+WATER_SHADER = res("Shader", "res://assets/shaders/water.gdshader")
+WORLD_VISUALS = res("Script", "res://scripts/world/world_visuals.gd")
+DAY_NIGHT = res("Script", "res://scripts/world/day_night_cycle.gd")
+GRASS = res("Script", "res://scripts/world/grass_field.gd")
 
 sub("""[sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_island"]
 sky_top_color = Color(0.2, 0.46, 0.88, 1)
@@ -85,54 +89,103 @@ sun_angle_max = 25.0""")
 sub("""[sub_resource type="Sky" id="Sky_island"]
 sky_material = SubResource("SkyMaterial_island")""")
 # Ambiance lumineuse façon Zelda : ciel, brouillard léger, SSAO, léger éclat, couleurs vives.
+sub("""[sub_resource type="Gradient" id="Gradient_grading"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0.02, 0.03, 0.07, 1, 0.55, 0.5, 0.44, 1, 1, 0.97, 0.9, 1)""")
+sub("""[sub_resource type="GradientTexture1D" id="Texture_grading"]
+gradient = SubResource("Gradient_grading")""")
+# Ambiance lumineuse façon Zelda : ciel, ACES, éclat léger, SSAO, SDFGI (lumière indirecte),
+# brouillard léger + volumétrique doux, étalonnage chaud et saturé. La qualité graphique
+# (WorldVisuals) active ou non les effets coûteux ; le cycle jour/nuit fait varier les couleurs.
 sub("""[sub_resource type="Environment" id="Environment_island"]
 background_mode = 2
 sky = SubResource("Sky_island")
 ambient_light_source = 3
-ambient_light_energy = 0.55
+ambient_light_energy = 0.6
 tonemap_mode = 3
-tonemap_exposure = 1.1
+tonemap_exposure = 1.05
+tonemap_white = 6.0
 ssao_enabled = true
-ssao_radius = 1.6
-ssao_intensity = 1.6
+ssao_radius = 1.5
+ssao_intensity = 1.8
+sdfgi_enabled = true
+sdfgi_use_occlusion = true
+sdfgi_bounce_feedback = 0.5
+sdfgi_cascades = 4
+sdfgi_min_cell_size = 0.25
+sdfgi_energy = 0.8
 glow_enabled = true
-glow_intensity = 0.35
-glow_bloom = 0.05
+glow_intensity = 0.5
+glow_bloom = 0.08
+glow_hdr_threshold = 0.9
 fog_enabled = true
 fog_light_color = Color(0.72, 0.84, 0.96, 1)
-fog_density = 0.0035
-fog_sky_affect = 0.25
+fog_density = 0.002
+fog_sky_affect = 0.2
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.008
+volumetric_fog_albedo = Color(0.92, 0.9, 0.85, 1)
+volumetric_fog_anisotropy = 0.3
+volumetric_fog_length = 80.0
+volumetric_fog_gi_inject = 0.6
 adjustment_enabled = true
-adjustment_saturation = 1.15""")
-sub("""[sub_resource type="StandardMaterial3D" id="Material_sea"]
-transparency = 1
-albedo_color = Color(0.16, 0.5, 0.78, 0.86)
-metallic = 0.2
-roughness = 0.08""")
+adjustment_brightness = 1.02
+adjustment_contrast = 1.06
+adjustment_saturation = 1.22
+adjustment_color_correction = SubResource("Texture_grading")""")
+sub(f"""[sub_resource type="ShaderMaterial" id="Material_sea"]
+render_priority = -1
+shader = {WATER_SHADER}
+shader_parameter/foam_width = 0.9
+shader_parameter/wave_height = 0.05""")
 sub("""[sub_resource type="PlaneMesh" id="PlaneMesh_sea"]
 material = SubResource("Material_sea")
-size = Vector2(3000, 3000)""")
-sub("""[sub_resource type="StandardMaterial3D" id="Material_river"]
-transparency = 1
-albedo_color = Color(0.25, 0.62, 0.9, 0.9)
-metallic = 0.2
-roughness = 0.05""")
+size = Vector2(3000, 3000)
+subdivide_width = 60
+subdivide_depth = 60""")
+sub(f"""[sub_resource type="ShaderMaterial" id="Material_river"]
+shader = {WATER_SHADER}
+shader_parameter/shallow_color = Color(0.4, 0.85, 0.95, 0.85)
+shader_parameter/deep_color = Color(0.15, 0.5, 0.85, 0.95)
+shader_parameter/wave_height = 0.0
+shader_parameter/river_mode = true
+shader_parameter/flow_direction = Vector2(1, 0)
+shader_parameter/flow_speed = 0.8""")
 sub("""[sub_resource type="PlaneMesh" id="PlaneMesh_river"]
 material = SubResource("Material_river")
-size = Vector2(100, 4)""")
+size = Vector2(100, 4)
+subdivide_width = 50""")
 
 # ------------------------------------------------------------------ racine, lumière, eau
 node(f"""[node name="Island" type="Node3D"]
 script = {LEVEL}
 bake_navigation_on_ready = false""")
-node("""[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_island")""")
+node(f"""[node name="WorldEnvironment" type="WorldEnvironment" parent="." node_paths=PackedStringArray("sun")]
+environment = SubResource("Environment_island")
+script = {WORLD_VISUALS}
+sun = NodePath("../Sun")""")
 node("""[node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.819152, -0.40558, 0.40558, 0, 0.707107, 0.707107, -0.573576, -0.579228, 0.579228, 0, 20, 0)
 light_color = Color(1, 0.96, 0.88, 1)
 light_energy = 1.25
+light_angular_distance = 0.8
 shadow_enabled = true
-directional_shadow_max_distance = 70.0""")
+shadow_blur = 1.2
+directional_shadow_max_distance = 90.0""")
+node("""[node name="Moon" type="DirectionalLight3D" parent="."]
+light_color = Color(0.6, 0.72, 1, 1)
+light_energy = 0.0
+shadow_enabled = true
+directional_shadow_max_distance = 60.0
+visible = false""")
+node(f"""[node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("sun", "moon", "world_environment")]
+script = {DAY_NIGHT}
+sun = NodePath("../Sun")
+moon = NodePath("../Moon")
+world_environment = NodePath("../WorldEnvironment")""")
+node(f"""[node name="Grass" type="Node3D" parent="."]
+script = {GRASS}
+excluded_areas = Array[Rect2]([Rect2(-60, -5, 120, 6), Rect2(16, -32, 12, 12)])""")
 node("""[node name="Sea" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.55, 0)
 cast_shadow = 0

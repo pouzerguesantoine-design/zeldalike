@@ -23,15 +23,21 @@ X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
 lp.reset_scene()
 
 # ------------------------------------------------------------------ matériaux
-skin = lp.material("Peau", (1.0, 0.78, 0.62))
-tunic = lp.material("Tunique", (0.2, 0.56, 0.2))
-cap_mat = lp.material("Bonnet", (0.14, 0.45, 0.16))
-tights = lp.material("Collant", (0.92, 0.89, 0.78))
-leather = lp.material("Cuir", (0.36, 0.21, 0.1))
-boots = lp.material("Bottes", (0.3, 0.17, 0.08))
-hair = lp.material("Cheveux", (0.96, 0.8, 0.34))
-eyes = lp.material("Yeux", (0.05, 0.12, 0.25), roughness=0.3)
-gold = lp.material("Or", (0.95, 0.76, 0.2), roughness=0.4, metallic=0.6)
+# Palette commune (voir lowpoly.PALETTE) : verts francs, cuirs chauds, touches d'or.
+P = lp.PALETTE
+skin = lp.material("Peau", P["skin"])
+tunic = lp.material("Tunique", P["tunic"])
+tunic_dark = lp.material("TuniqueSombre", P["tunic_dark"])
+cap_mat = lp.material("Bonnet", P["tunic_dark"])
+tights = lp.material("Collant", P["cream"])
+leather = lp.material("Cuir", P["leather"])
+boots = lp.material("Bottes", P["leather_dark"])
+hair = lp.material("Cheveux", P["hair"])
+brows = lp.material("Sourcils", P["hair_dark"])
+eyes = lp.material("Yeux", P["eye"], roughness=0.3)
+gold = lp.material("Or", P["gold"], roughness=0.4, metallic=0.6)
+shield_blue = lp.material("BouclierBleu", P["royal_blue"])
+silver = lp.material("Argent", P["silver"], roughness=0.35, metallic=0.7)
 
 # ------------------------------------------------------------------ squelette
 bones = [
@@ -52,32 +58,47 @@ arm = lp.make_armature("PlayerRig", bones)
 
 # ------------------------------------------------------------------ maillage
 mb = lp.MeshBuilder()
-# Bassin, ceinture et bas de tunique (suivent les hanches)
+# Bassin, ceinture et bas de tunique évasé avec liseré (suivent les hanches)
 mb.box((0.34, 0.22, 0.18), tights, "hips", location=(0, 0, 0.88))
-mb.cylinder(0.27, 0.24, tunic, "hips", radius_top=0.21, location=(0, 0, 0.9))
-mb.box((0.42, 0.28, 0.07), leather, "hips", location=(0, 0, 1.0))
-mb.box((0.09, 0.03, 0.07), gold, "hips", location=(0, 0.145, 1.0))
-# Buste
-mb.cylinder(0.2, 0.34, tunic, "spine", radius_top=0.17, location=(0, 0, 1.18))
-mb.cylinder(0.07, 0.08, skin, "spine", location=(0, 0, 1.36))
-# Tête : visage, cheveux, yeux, oreilles pointues, bonnet
-mb.sphere(0.24, skin, "head", segments=10, rings=8, location=(0, 0, 1.55))
-mb.sphere(0.25, hair, "head", segments=10, rings=6, location=(0, -0.03, 1.64), scale=(1, 1, 0.62))
+mb.cylinder(0.29, 0.26, tunic, "hips", segments=10, radius_top=0.21, location=(0, 0, 0.9))
+mb.cylinder(0.295, 0.03, tunic_dark, "hips", segments=10, location=(0, 0, 0.775))
+mb.box((0.43, 0.29, 0.07), leather, "hips", location=(0, 0, 1.0))
+mb.box((0.1, 0.03, 0.08), gold, "hips", location=(0, 0.15, 1.0))
+mb.box((0.1, 0.08, 0.11), leather, "hips", location=(-0.19, 0.11, 0.95))
+mb.box((0.06, 0.02, 0.05), gold, "hips", location=(-0.19, 0.155, 0.97))
+# Buste, col, bandoulière du bouclier
+mb.cylinder(0.2, 0.34, tunic, "spine", segments=10, radius_top=0.17, location=(0, 0, 1.18))
+mb.cylinder(0.13, 0.05, tunic_dark, "spine", segments=10, radius_top=0.11, location=(0, 0, 1.33))
+mb.cylinder(0.07, 0.08, skin, "spine", location=(0, 0, 1.37))
+mb.box((0.06, 0.03, 0.46), leather, "spine", location=(0.02, 0.17, 1.17), rotation=(0, 38, 0))
+# Bouclier dans le dos : disque bleu, bord argenté, emblème doré
+mb.cylinder(0.27, 0.04, silver, "spine", segments=12, location=(0, -0.22, 1.17), rotation=(90, 0, 0))
+mb.cylinder(0.24, 0.05, shield_blue, "spine", segments=12, location=(0, -0.235, 1.17), rotation=(90, 0, 0))
+mb.cylinder(0.09, 0.06, gold, "spine", segments=3, radius_top=0.0, location=(0, -0.26, 1.2), rotation=(90, 0, 0))
+# Tête : visage, nez, sourcils, cheveux, yeux, oreilles pointues, bonnet
+mb.sphere(0.24, skin, "head", segments=12, rings=9, location=(0, 0, 1.55))
+mb.box((0.05, 0.06, 0.06), skin, "head", location=(0, 0.24, 1.52))
+mb.sphere(0.25, hair, "head", segments=12, rings=7, location=(0, -0.03, 1.64), scale=(1, 1, 0.62))
 mb.box((0.36, 0.08, 0.1), hair, "head", location=(0, 0.19, 1.68))
 for s in (1, -1):
-    mb.box((0.05, 0.02, 0.08), eyes, "head", location=(0.085 * s, 0.225, 1.56))
+    mb.box((0.05, 0.02, 0.08), eyes, "head", location=(0.085 * s, 0.225, 1.565))
+    mb.box((0.07, 0.02, 0.02), brows, "head", location=(0.085 * s, 0.23, 1.625), rotation=(0, -12 * s, 0))
     mb.cylinder(0.05, 0.2, skin, "head", segments=6, radius_top=0.0,
                 location=(0.3 * s, -0.02, 1.57), rotation=(0, 78 * s, 0))
-mb.cylinder(0.25, 0.6, cap_mat, "head", segments=8, radius_top=0.02,
+mb.cylinder(0.255, 0.05, tunic_dark, "head", segments=12, location=(0, -0.02, 1.71), rotation=(-12, 0, 0))
+mb.cylinder(0.25, 0.6, cap_mat, "head", segments=10, radius_top=0.02,
             location=(0, -0.3, 1.6), rotation=(112, 0, 0))
-# Bras : manche, avant-bras, main (gant de cuir)
+# Bras : manche, avant-bras, manchette et gant de cuir
 for side, s in (("R", 1), ("L", -1)):
-    mb.cylinder(0.075, 0.28, tunic, f"upper_arm.{side}", segments=6, location=(0.29 * s, 0, 1.15))
-    mb.cylinder(0.06, 0.24, skin, f"forearm.{side}", segments=6, location=(0.305 * s, 0, 0.91))
-    mb.sphere(0.075, leather, f"hand.{side}", segments=6, rings=4, location=(0.31 * s, 0, 0.74))
-    # Jambes : cuisse, botte, pied
-    mb.cylinder(0.09, 0.4, tights, f"thigh.{side}", segments=6, location=(0.11 * s, 0, 0.66))
-    mb.cylinder(0.095, 0.38, boots, f"shin.{side}", segments=6, location=(0.11 * s, 0, 0.29))
+    mb.cylinder(0.075, 0.28, tunic, f"upper_arm.{side}", segments=8, location=(0.29 * s, 0, 1.15))
+    mb.cylinder(0.082, 0.04, tunic_dark, f"upper_arm.{side}", segments=8, location=(0.3 * s, 0, 1.02))
+    mb.cylinder(0.06, 0.24, skin, f"forearm.{side}", segments=8, location=(0.305 * s, 0, 0.91))
+    mb.cylinder(0.07, 0.07, leather, f"forearm.{side}", segments=8, location=(0.31 * s, 0, 0.82))
+    mb.sphere(0.075, leather, f"hand.{side}", segments=8, rings=5, location=(0.31 * s, 0, 0.74))
+    # Jambes : cuisse, botte à revers, pied
+    mb.cylinder(0.09, 0.4, tights, f"thigh.{side}", segments=8, location=(0.11 * s, 0, 0.66))
+    mb.cylinder(0.095, 0.38, boots, f"shin.{side}", segments=8, location=(0.11 * s, 0, 0.29))
+    mb.cylinder(0.11, 0.06, leather, f"shin.{side}", segments=8, location=(0.11 * s, 0, 0.46))
     mb.box((0.14, 0.26, 0.1), boots, f"foot.{side}", location=(0.11 * s, 0.05, 0.05))
 body = mb.build("PlayerBody")
 lp.skin(body, arm)

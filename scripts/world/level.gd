@@ -11,6 +11,8 @@ extends Node3D
 
 
 func _ready() -> void:
+	# Cel-shading de tout le décor (terrain, maisons, arbres qui ondulent, coffres…).
+	ToonMaterials.apply(navigation_region)
 	if bake_navigation_on_ready:
 		# Cuisson synchrone : quelques millisecondes pour un petit niveau.
 		navigation_region.bake_navigation_mesh(false)

@@ -16,6 +16,7 @@ var _angle: float = 0.6
 @onready var new_game_button: Button = %NewGameButton
 @onready var continue_button: Button = %ContinueButton
 @onready var quit_button: Button = %QuitButton
+@onready var graphics_option: OptionButton = %GraphicsOption
 
 
 func _ready() -> void:
@@ -33,6 +34,8 @@ func _ready() -> void:
 	continue_button.pressed.connect(func() -> void: GameState.continue_game())
 	quit_button.pressed.connect(func() -> void: GameState.quit_game())
 	continue_button.disabled = not GameState.has_save()
+	graphics_option.select(GameState.graphics_quality)
+	graphics_option.item_selected.connect(func(index: int) -> void: GameState.set_graphics_quality(index))
 	get_viewport().gui_focus_changed.connect(func(_control: Control) -> void: Sfx.play(self, &"ui_move"))
 	(continue_button if not continue_button.disabled else new_game_button).grab_focus.call_deferred()
 

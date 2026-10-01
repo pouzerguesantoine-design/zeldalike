@@ -37,15 +37,25 @@ def merge(*parts):
 
 # =============================================================================== Slime
 lp.reset_scene()
-jelly = lp.material("Gelee", (0.3, 0.82, 0.38), roughness=0.15, alpha=0.88)
-core = lp.material("Coeur", (0.16, 0.55, 0.22), roughness=0.3)
+P = lp.PALETTE
+jelly = lp.material("Gelee", P["slime"], roughness=0.15, alpha=0.9)
+core = lp.material("Coeur", P["slime_core"], roughness=0.3)
+bubble = lp.material("Bulle", (0.7, 1.0, 0.75), roughness=0.1)
 eye = lp.material("OeilNoir", (0.04, 0.04, 0.06), roughness=0.1)
+mouth = lp.material("Bouche", (0.1, 0.25, 0.12))
+sprout = lp.material("Pousse", P["leaves_light"])
 shine = lp.material("Reflet", (1, 1, 1), roughness=0.1, emission=(1, 1, 1), emission_strength=0.5)
 
 slime_arm = lp.make_armature("SlimeRig", [("body", (0, 0, 0), (0, 0, 0.8), None)])
 mb = lp.MeshBuilder()
 mb.ico(0.55, jelly, "body", subdivisions=2, location=(0, 0, 0.42), scale=(1, 1, 0.78))
 mb.ico(0.22, core, "body", subdivisions=1, location=(0, -0.05, 0.36))
+# Bulles à l'intérieur, petite bouche, pousse de feuille sur la tête
+mb.ico(0.06, bubble, "body", subdivisions=1, location=(0.2, -0.15, 0.55))
+mb.ico(0.04, bubble, "body", subdivisions=1, location=(-0.22, -0.05, 0.3))
+mb.box((0.12, 0.02, 0.035), mouth, "body", location=(0, 0.47, 0.38))
+mb.cylinder(0.015, 0.14, sprout, "body", segments=4, location=(0, -0.02, 0.88))
+mb.sphere(0.07, sprout, "body", segments=6, rings=3, location=(0.05, -0.02, 0.96), scale=(1.4, 0.5, 0.6), rotation=(0, -25, 0))
 for s in (1, -1):
     mb.sphere(0.075, eye, "body", segments=8, rings=5, location=(0.17 * s, 0.44, 0.52), scale=(1, 0.6, 1.2))
     mb.sphere(0.022, shine, "body", segments=6, rings=4, location=(0.15 * s + 0.02, 0.485, 0.56))
@@ -72,9 +82,13 @@ print("Slime exporté")
 
 # ============================================================================== Gobelin
 lp.reset_scene()
-skin = lp.material("PeauGobelin", (0.45, 0.66, 0.26))
-tunic = lp.material("Haillons", (0.46, 0.3, 0.15))
-dark = lp.material("CuirSombre", (0.22, 0.13, 0.07))
+P = lp.PALETTE
+skin = lp.material("PeauGobelin", P["goblin_skin"])
+skin_dark = lp.material("PeauGobelinSombre", P["goblin_skin_dark"])
+tunic = lp.material("Haillons", P["rag"])
+dark = lp.material("CuirSombre", P["leather_dark"])
+gold = lp.material("AnneauOr", P["gold"], metallic=0.6, roughness=0.35)
+hair = lp.material("TouffeNoire", (0.12, 0.09, 0.08))
 wood = lp.material("BoisMassue", (0.38, 0.24, 0.12))
 eyes = lp.material("YeuxJaunes", (1.0, 0.85, 0.1), emission=(1.0, 0.8, 0.1), emission_strength=1.5)
 teeth = lp.material("Dents", (0.95, 0.92, 0.8))
@@ -109,6 +123,16 @@ for s in (1, -1):
     mb.sphere(0.055, eyes, "head", segments=6, rings=4, location=(0.12 * s, 0.27, 1.47))
     mb.box((0.035, 0.03, 0.07), teeth, "head", location=(0.07 * s, 0.27, 1.27))
 mb.cylinder(0.06, 0.2, skin, "head", segments=5, radius_top=0.0, location=(0, 0.36, 1.38), rotation=(-80, 0, 0))
+# Arcade sourcilière, anneau au nez, touffe de cheveux, mâchoire
+mb.box((0.36, 0.08, 0.06), skin_dark, "head", location=(0, 0.26, 1.53), rotation=(-15, 0, 0))
+mb.cylinder(0.045, 0.015, gold, "head", segments=8, location=(0, 0.41, 1.33), rotation=(0, 90, 0))
+for k, (x, tilt) in enumerate(((-0.08, -20), (0.0, 0), (0.08, 20))):
+    mb.cylinder(0.05, 0.22, hair, "head", segments=4, radius_top=0.0, location=(x, -0.02, 1.74), rotation=(-25, tilt, 0))
+mb.box((0.3, 0.16, 0.08), skin_dark, "head", location=(0, 0.2, 1.24))
+# Pagne, ceinture, épaulière de cuir
+mb.box((0.22, 0.04, 0.28), tunic, "hips", location=(0, 0.25, 0.5), rotation=(8, 0, 0))
+mb.box((0.62, 0.32, 0.06), dark, "hips", location=(0, 0, 0.72))
+mb.box((0.2, 0.28, 0.1), dark, "spine", location=(0.3, 0, 1.1), rotation=(0, 25, 0))
 # Bras longs, jambes courtes
 for side, s in (("R", 1), ("L", -1)):
     mb.cylinder(0.07, 0.3, skin, f"upper_arm.{side}", segments=6, location=(0.33 * s, 0, 0.95))

@@ -48,6 +48,21 @@ def link(obj):
 
 # ------------------------------------------------------------------------ matériaux
 
+# Palette commune (sRGB) : couleurs franches et chaudes, harmonisées entre héros,
+# ennemis et décor (style Zelda low-poly).
+PALETTE = {
+    "skin": (1.0, 0.8, 0.66), "hair": (0.98, 0.82, 0.36), "hair_dark": (0.62, 0.42, 0.16),
+    "eye": (0.07, 0.14, 0.3), "tunic": (0.26, 0.64, 0.22), "tunic_dark": (0.15, 0.44, 0.16),
+    "cream": (0.96, 0.92, 0.8), "leather": (0.5, 0.3, 0.14), "leather_dark": (0.33, 0.19, 0.09),
+    "gold": (0.98, 0.78, 0.25), "silver": (0.8, 0.83, 0.88), "royal_blue": (0.2, 0.36, 0.7),
+    "goblin_skin": (0.5, 0.7, 0.26), "goblin_skin_dark": (0.36, 0.52, 0.18), "rag": (0.55, 0.36, 0.18),
+    "slime": (0.34, 0.85, 0.42), "slime_core": (0.18, 0.58, 0.26),
+    "leaves": (0.32, 0.66, 0.24), "leaves_light": (0.5, 0.78, 0.3), "leaves_dark": (0.2, 0.47, 0.2),
+    "pine": (0.15, 0.46, 0.27), "pine_light": (0.24, 0.58, 0.33), "bark": (0.46, 0.29, 0.15),
+    "bark_dark": (0.32, 0.2, 0.1),
+}
+
+
 def srgb_to_linear(color):
     """Les couleurs des scripts sont données en sRGB (comme un sélecteur de couleur) ;
     Blender (et le glTF) stockent les couleurs de matériau en espace LINÉAIRE."""
