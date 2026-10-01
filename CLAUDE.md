@@ -57,7 +57,8 @@ scripts/player/ (+ states/)  scripts/enemies/ (+ states/)  scripts/components/  
 scripts/ui/  scripts/autoload/  scripts/world/ (scripts de niveau)
 resources/weapons/  resources/spells/  resources/items/  resources/loot_tables/  resources/stats/
 resources/animation/  AnimationTree du joueur (généré par tools/godot/)
-tests/                scènes de test automatiques (à exclure de l'export, jalon 9)
+tests/                scènes de test automatiques (exclues de l'export)
+build/                exports (ignoré par git) ; export_presets.cfg : preset « Windows Desktop »
 tools/blender/        scripts Python qui construisent les modèles dans Blender (ignoré par Godot)
 tools/godot/          scripts Godot de génération (AnimationTree, cuisson de la navigation)
 tools/level/          générateur initial de l'île (écrase island.tscn : à ne plus relancer)
@@ -529,6 +530,29 @@ Player (CharacterBody3D, player.gd, groupe "player")
 - Captures : `docs/screenshots/avant_*` (fin du jalon 8), `apres_*`, `comparaison_*` (côte à côte) ;
   les images du README (`village.png`…) sont celles d'après.
 
+## Export Windows (jalon 9)
+
+- **Modèles d'export** 4.7.2 installés dans `%APPDATA%\Godot\export_templates\4.7.2.stable\`
+  (fichier `.tpz` officiel de la page GitHub de Godot, somme SHA-512 vérifiée).
+- **Preset** `export_presets.cfg` : « Windows Desktop », x86_64, **PCK intégré** → un seul
+  `build/ZeldaLike.exe` (dossier `build/` ignoré par git). Exclus : `tests/*`, `tools/*`, `docs/*`,
+  `assets/blender/*`, `*.md`, `*.blend`, `*.py`.
+- **Nom / version** : `application/config/name = "ZeldaLike"`, `config/version = "1.0.0"` ; version
+  de fichier et de produit `1.0.0.0` dans le preset (à augmenter aux deux endroits).
+- **Icône** : logo `assets/textures/logo.svg` → `tools/godot/make_icon.gd` génère `icon.ico`
+  (7 tailles) et `logo.png` (écran de démarrage, PNG obligatoire). Godot 4.7 n'utilise **plus
+  rcedit** : l'icône et les infos de version sont écrites par l'export (`application/modify_resources`).
+- **Exporter** :
+  `"$G" --headless --path . --export-release "Windows Desktop" build/ZeldaLike.exe`
+  (ou dans l'éditeur : Projet → Exporter… → Windows Desktop → Exporter le projet).
+  Version en deux fichiers : `--export-pack "Windows Desktop" dossier/ZeldaLike.pck` + copie du
+  modèle `windows_release_x86_64.exe` renommé `ZeldaLike.exe` à côté.
+- **Tester le contenu exporté** : exporter un pack qui garde `tests/` (preset provisoire sans
+  `tests/*` dans les exclusions), poser à côté le modèle release renommé et un `override.cfg`
+  (`[application]` `run/main_scene="res://tests/test_jalonX.tscn"`), lancer avec `--headless`.
+- **Release GitHub** : `gh release create vX.Y.Z build/ZeldaLike.exe build/*.zip --notes-file …`
+  (`gh` installé par winget : `C:\Program Files\GitHub CLI\gh.exe`).
+
 ## Pièges connus
 
 - **NavigationAgent3D** : le maillage est cuit environ 0,5 m au-dessus du sol ; avec
@@ -562,6 +586,15 @@ Player (CharacterBody3D, player.gd, groupe "player")
   clairs la nuit).
 - **Herbe et contours** : l'herbe est dans la passe transparente (`ALPHA = 1.0`,
   `depth_draw_never`) pour ne pas écrire la profondeur ; sinon le contour encré cerne chaque brin.
+- **Smart App Control** (Windows 11, actif sur ce PC) bloque tout exe neuf non signé : le
+  `ZeldaLike.exe` à PCK intégré (et icône modifiée) ne se lance pas ici ; le modèle officiel non
+  modifié + `.pck` à côté, lui, passe. Ne pas toucher à ce réglage de sécurité ; une vraie
+  solution = certificat de signature de code.
+- Modèles d'export : les exe refusent une scène en argument (« compiled without support for path
+  overrides ») → utiliser `override.cfg` à côté de l'exe.
+- Le Python du Microsoft Store redirige les écritures dans `%APPDATA%` vers son dossier privé
+  (`AppData\Local\Packages\PythonSoftwareFoundation…\LocalCache\Roaming`) : y écrire avec Bash / PowerShell.
+- Écran de démarrage (`boot_splash/image`) : PNG uniquement (pas de SVG).
 - Ne pas nommer une fonction `convert` (fonction intégrée de GDScript) → `convert_material`.
 - Valeurs lues dans un `Array` non typé : caster (`float(…)`) pour éviter l'inférence Variant.
 
@@ -579,4 +612,4 @@ Player (CharacterBody3D, player.gd, groupe "player")
 | 7 | HUD et interface | fait |
 | 8 | Finitions (sons, particules, équilibrage, nettoyage, README) | fait |
 | 8.5 | Amélioration visuelle : cel-shading + contours, SDFGI/VoxelGI, cycle jour/nuit, environnement (ACES, glow, SSAO, brouillard volumétrique, étalonnage chaud), herbe au vent (MultiMesh), feuillage qui ondule, eau stylisée avec écume, modèles Blender enrichis, traînées d'épée, particules plus riches, réglages graphiques bas / moyen / haut ; captures avant / après (`docs/screenshots/comparaison_*.png`) | fait |
-| 9 | Export en exécutable + Release GitHub | à faire |
+| 9 | Export en exécutable + Release GitHub v1.0.0 | fait |

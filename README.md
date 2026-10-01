@@ -74,10 +74,34 @@ Moyen par défaut). Bas convient aux petites cartes graphiques.
 |---|---|
 | ![Nuit](docs/screenshots/apres_nuit.png) | ![Qualité Bas](docs/screenshots/apres_village_bas.png) |
 
-## Lancer le jeu
+## Télécharger et jouer (Windows)
+
+Page [Releases](https://github.com/pouzerguesantoine-design/zeldalike/releases) :
+
+- **`ZeldaLike.exe`** : le jeu en un seul fichier, rien à installer. Le fichier n'est pas signé :
+  Windows peut afficher « Windows a protégé votre ordinateur » → *Informations complémentaires* →
+  *Exécuter quand même*.
+- **`ZeldaLike-v1.0.0-windows-2-fichiers.zip`** : si Windows refuse complètement l'exe (PC avec
+  *Smart App Control* actif), dézipper et lancer `ZeldaLike.exe` en gardant `ZeldaLike.pck` à côté.
+
+La sauvegarde est dans `%APPDATA%\Godot\app_userdata\ZeldaLike\`.
+
+## Lancer le jeu depuis Godot
 
 1. Installer [Godot 4.7](https://godotengine.org/) (version standard, pas .NET).
 2. Ouvrir `project.godot`, puis **F5**.
+
+## Refaire l'export
+
+1. Dans Godot : **Éditeur → Gérer les modèles d'exportation** (à installer une fois, même version
+   que l'éditeur).
+2. **Projet → Exporter…** → preset **Windows Desktop** (déjà configuré : x86_64, PCK intégré,
+   icône, version) → **Exporter le projet** → choisir `build/ZeldaLike.exe`, décocher
+   « Exporter avec débogage ».
+3. Pour changer la version : *Paramètres du projet → Application → Config → Version* et, dans le
+   preset, *Version du fichier* / *Version du produit*.
+
+En ligne de commande : `godot --headless --path . --export-release "Windows Desktop" build/ZeldaLike.exe`.
 
 ## Régler l'équilibrage
 
